@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R6 Clip Preview</title>
+<style>
+  :root { --bg: #14161a; --panel: #1d2026; --text: #e7e9ee; --muted: #9aa1ad; --accent: #ffb547; --hit: #ff4d4d; }
+  @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg: #f3f4f6; --panel: #ffffff; --text: #16181d; --muted: #5b6270; } }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
+  #view { position: fixed; inset: 0; }
+  #ui { position: fixed; left: 16px; right: 16px; bottom: 16px; background: var(--panel); border-radius: 10px; padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; box-shadow: 0 4px 18px rgba(0,0,0,.25); }
+  select, button { background: var(--bg); color: var(--text); border: 1px solid #3a3f49; border-radius: 6px; padding: 5px 9px; font: inherit; }
+  input[type=range] { flex: 1 1 200px; }
+  #info { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 210px; }
+  #flag { color: var(--hit); font-weight: 600; min-width: 60px; }
+  #help { position: fixed; top: 12px; left: 16px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="help">Kéo chuột để xoay camera, cuộn để zoom. Phím Space: chạy/dừng, ←/→: từng khung hình.</div>
+<div id="ui">
+  <select id="clip"></select>
+  <button id="play">Dừng</button>
+  <select id="speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option><option value="0.1">0.1×</option></select>
+  <select id="cam"><option value="side">Ngang</option><option value="front">Chính diện</option><option value="three">3/4</option><option value="top">Trên xuống</option></select>
+  <label><input type="checkbox" id="trail" checked> Vệt tay/chân</label>
+  <label><input type="checkbox" id="ghost"> Onion skin</label>
+  <label><input type="checkbox" id="stop" checked> Hit-stop</label>
+  <input type="range" id="scrub" min="0" max="1" step="1" value="0">
+  <span id="info"></span><span id="flag"></span>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const CLIPS = __CLIPS__;
+const SIZES = { Torso: [2, 2, 1], Head: [1.25, 1.25, 1.25], "Right Arm": [1, 2, 1], "Left Arm": [1, 2, 1], "Right Leg": [1, 2, 1], "Left Leg": [1, 2, 1] };
+const COLORS = { Torso: 0x3f7fd8, Head: 0xf2c94c, "Right Arm": 0xf2c94c, "Left Arm": 0xf2c94c, "Right Leg": 0x4b9b5a, "Left Leg": 0x4b9b5a };
+const TIP = { "Right Arm": [0, -1, 0], "Left Arm": [0, -1, 0], "Right Leg": [0, -1, 0], "Left Leg": [0, -1, 0] };
+const LIMB = { LeftArm: "Left Arm", RightArm: "Right Arm", LeftLeg: "Left Leg", RightLeg: "Right Leg" };
+
+const canvas = document.getElementById("view");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 200);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.9));
+const sun = new THREE.DirectionalLight(0xffffff, 0.7); sun.position.set(5, 10, 6); scene.add(sun);
+const grid = new THREE.GridHelper(30, 30, 0x666666, 0x333333); grid.position.y = -3; scene.add(grid);
+const dummy = new THREE.Mesh(new THREE.BoxGeometry(2, 5, 1), new THREE.MeshStandardMaterial({ color: 0x888888, transparent: true, opacity: 0.18 }));
+dummy.position.set(0, -0.5, -6.6); scene.add(dummy);
+
+function body(opacity) {
+  const g = {};
+  for (const p in SIZES) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(...SIZES[p]), new THREE.MeshStandardMaterial({ color: COLORS[p], transparent: opacity < 1, opacity }));
+    m.matrixAutoUpdate = false; scene.add(m); g[p] = m;
+  }
+  return g;
+}
+const rig = body(1);
+const ghosts = [body(0.15), body(0.15)];
+const trailGeo = new THREE.BufferGeometry();
+const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0xffb547 }));
+scene.add(trail);
+
+function apply(g, frame) {
+  for (const p in g) {
+    const c = frame[p], m = new THREE.Matrix4();
+    m.set(c[3], c[4], c[5], c[0], c[6], c[7], c[8], c[1], c[9], c[10], c[11], c[2], 0, 0, 0, 1);
+    g[p].matrix.copy(m);
+  }
+}
+function tipOf(frame, part) {
+  const c = frame[part], t = TIP[part];
+  return new THREE.Vector3(c[0] + c[3] * t[0] + c[4] * t[1] + c[5] * t[2], c[1] + c[6] * t[0] + c[7] * t[1] + c[8] * t[2], c[2] + c[9] * t[0] + c[10] * t[1] + c[11] * t[2]);
+}
+
+const sel = document.getElementById("clip"), scrub = document.getElementById("scrub"), info = document.getElementById("info"), flag = document.getElementById("flag");
+CLIPS.forEach((c, i) => sel.add(new Option(c.name + (c.loop ? " (loop)" : ""), i)));
+let clip = CLIPS[0], t = 0, playing = true, freezeUntil = 0;
+function choose(i) {
+  clip = CLIPS[i]; t = 0; scrub.max = clip.frames.length - 1;
+  const limb = LIMB[clip.limb];
+  if (limb) {
+    const pts = clip.frames.map(f => tipOf(f, limb));
+    trailGeo.setFromPoints(pts);
+    rig[limb].material.emissive = new THREE.Color(0x000000);
+  } else trailGeo.setFromPoints([]);
+}
+sel.onchange = () => choose(+sel.value);
+document.getElementById("play").onclick = () => { playing = !playing; document.getElementById("play").textContent = playing ? "Dừng" : "Chạy"; };
+scrub.oninput = () => { playing = false; document.getElementById("play").textContent = "Chạy"; t = +scrub.value / clip.fps; };
+addEventListener("keydown", e => {
+  if (e.code === "Space") { document.getElementById("play").click(); e.preventDefault(); }
+  if (e.code === "ArrowRight" || e.code === "ArrowLeft") { playing = false; t = Math.max(0, t + (e.code === "ArrowRight" ? 1 : -1) / clip.fps); }
+});
+
+let yaw = -Math.PI / 2, pitch = 0.15, dist = 15, drag = null;
+const views = { side: [-Math.PI / 2, 0.12], front: [0, 0.12], three: [-Math.PI / 4, 0.3], top: [-Math.PI / 2, 1.3] };
+document.getElementById("cam").onchange = e => { [yaw, pitch] = views[e.target.value]; };
+canvas.onpointerdown = e => { drag = [e.clientX, e.clientY, yaw, pitch]; canvas.setPointerCapture(e.pointerId); };
+canvas.onpointermove = e => { if (!drag) return; yaw = drag[2] - (e.clientX - drag[0]) * 0.01; pitch = Math.max(-0.2, Math.min(1.45, drag[3] + (e.clientY - drag[1]) * 0.01)); };
+canvas.onpointerup = () => drag = null;
+canvas.onwheel = e => { dist = Math.max(5, Math.min(40, dist * (1 + Math.sign(e.deltaY) * 0.1))); e.preventDefault(); };
+
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+addEventListener("resize", resize); resize();
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  const n = clip.frames.length, len = (n - 1) / clip.fps;
+  const hitMarker = clip.markers.find(m => m.name === "Hit");
+  if (playing && now >= freezeUntil) {
+    const before = t;
+    t += dt * +document.getElementById("speed").value;
+    if (hitMarker && document.getElementById("stop").checked && before < hitMarker.frame / clip.fps && t >= hitMarker.frame / clip.fps) {
+      t = hitMarker.frame / clip.fps;
+      freezeUntil = now + clip.hitstop * 1000 / +document.getElementById("speed").value;
+    }
+    if (t > len) t = clip.loop ? t % len : (t > len + 0.5 ? 0 : len);
+  }
+  if (!(t >= 0)) t = 0;
+  const fi = Math.max(0, Math.min(n - 1, Math.round(t * clip.fps)));
+  apply(rig, clip.frames[fi]);
+  const showGhost = document.getElementById("ghost").checked;
+  ghosts.forEach((g, k) => { const gi = Math.max(0, fi - (k + 1) * 3); for (const p in g) g[p].visible = showGhost; if (showGhost) apply(g, clip.frames[gi]); });
+  trail.visible = document.getElementById("trail").checked;
+  const near = clip.markers.find(m => Math.abs(m.frame - fi) <= 0);
+  flag.textContent = near ? near.name : "";
+  const limb = LIMB[clip.limb];
+  if (limb) rig[limb].material.emissive = new THREE.Color(hitMarker && Math.abs(hitMarker.frame - fi) <= 1 ? 0x661111 : 0x000000);
+  scrub.value = fi;
+  info.textContent = `khung ${fi}/${n - 1}  ·  ${(fi / clip.fps).toFixed(3)} s  ·  ${clip.markers.map(m => m.name + "@" + m.frame).join(" ")}`;
+  camera.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, Math.sin(pitch) * dist - 0.5, Math.cos(yaw) * Math.cos(pitch) * dist - 1.5);
+  camera.lookAt(0, -0.5, -1.5);
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+choose(0);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
