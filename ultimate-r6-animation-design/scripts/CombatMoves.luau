@@ -9,7 +9,7 @@
 --   * Creator Store R6 punch packs: at contact the torso is turned 30-110 degrees into the punch,
 --     leans 15-40, lunges 0.2-0.65 stud and drops 0.2-1.0; the striking arm is pushed 0.5-1.4 stud
 --     out of its socket and the fist ends 2.3-4.2 studs in front of the root.
---   * Arczi's Ultimate R6 Movement System: arms slide 0.4-0.7 stud along their swing, legs ride up
+--   * the user's R6 movement system: arms slide 0.4-0.7 stud along their swing, legs ride up
 --     into the torso as the body sinks, the head never leaves the neck.
 -- Strike anatomy (see references/combat.md):
 --   guard -> chamber (load opposite the strike) -> hang -> snap to contact (the "Hit" marker)
@@ -24,7 +24,7 @@ local merge = R6Clip.merge
 
 -- Legs are keyed against the root (space = "root") so the torso can twist 60 degrees without
 -- swinging the feet around, and grounded (ground = true) so every drop of the body becomes the leg
--- riding up into the torso, Arczi's crouch.
+-- riding up into the torso, the movement system's crouch.
 local function leg(angles)
 	angles.space = "root"
 	angles.ground = true
@@ -282,7 +282,7 @@ end
 
 -- Back dash: a push off, the slide back, then the brake drops into a low kneel, the lead hand
 -- reaching down to the ground and the rear arm flung back, one leg forward and one stretched behind
--- like a knee on the floor. The depth is the size of Arczi's long landing (body down 1.15 stud,
+-- like a knee on the floor. The depth is the size of the movement system's long landing (body down 1.15 stud,
 -- legs riding 1.0-1.5 into the torso).
 function CombatMoves.DashBack()
 	local c = clip("DashBack")
@@ -410,7 +410,7 @@ function CombatMoves.HitHeavy()
 end
 
 -- Fighting stance idle: a moving hold, never a dead stop. The body breathes down and up 0.05 stud and
--- the hands drift in and out of the shoulders, the way Arczi's idle keeps its arms 0.15 stud loose.
+-- the hands drift in and out of the shoulders, the way the movement system's idle keeps its arms 0.15 stud loose.
 function CombatMoves.Stance()
 	local c = clip("Stance", { loop = true, priority = "Idle" })
 	c:key(0, G, "sineInOut")

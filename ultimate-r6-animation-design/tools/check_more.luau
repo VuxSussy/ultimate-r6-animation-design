@@ -85,8 +85,8 @@ return function(Env, check)
 	end
 
 	-- the power jab against the references, frame by frame at 60 fps
-	--   load    "cross punch" short: chamber held 8-10; Arczi's M1s: wind-up 4
-	--   release cross 2-4, Arczi 6-8, Creator Store punch packs 4-9 (to 90% travel)
+	--   load    "cross punch" short: chamber held 8-10; the YouTube combat system's M1s: wind-up 4
+	--   release cross 2-4, YouTube combat system 6-8, Creator Store punch packs 4-9 (to 90% travel)
 	--   hold    at least 6; back no more than 10; lean at least 20
 	do
 		local p = R6Clip.profile(moves.Jab.baked, "LeftArm")

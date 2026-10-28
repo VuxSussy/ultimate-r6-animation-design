@@ -23,7 +23,7 @@ local R6Combat = {}
 R6Combat.__index = R6Combat
 
 R6Combat.DEFAULTS = {
-	-- a slot may list variants, picked at random without repeating (Arczi's "random M1 combos"):
+	-- a slot may list variants, picked at random without repeating ("random M1 combos"):
 	-- combo = { { "Jab", "JabHigh" }, "Cross", ... }
 	combo = { "Jab", "Cross", "Hook", "Uppercut" },
 	comboReset = 0.9, -- seconds idle before the string starts over
@@ -33,7 +33,7 @@ R6Combat.DEFAULTS = {
 	-- of a move blends; 0.1-0.15 s between hits of a string keeps them from smearing together
 	fade = { attack = 0.04, dash = 0.06, block = 0.1, react = 0, out = 0.15 },
 	idle = "Stance", -- false when R6Locomotion owns idle, walk and run (it shows Stance while fighting)
-	-- Wind-up highlight (Arczi's Combat System): the attacker flashes for the chamber, a
+	-- Wind-up highlight (a YouTube combat system): the attacker flashes for the chamber, a
 	-- telegraph the target can read. false to turn off; meta.windup = { fromFrame, toFrame }.
 	windup = { color = Color3.fromRGB(255, 214, 150), fill = 0.45, fade = 0.12 },
 }

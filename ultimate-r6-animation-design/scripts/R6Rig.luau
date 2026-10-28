@@ -12,7 +12,7 @@ local function cf(...)
 end
 
 -- The stock R6 joints. Every R6 character made by Roblox has these values (checked against the
--- Eclipse Animator and Ultimate R6 Movement System rigs).
+-- Eclipse Animator and R6 movement system rigs).
 R6Rig.JOINTS = {
 	Torso = {
 		motor = "RootJoint",
@@ -239,7 +239,7 @@ function R6Rig.gap(part, transform, joints)
 end
 
 -- How far each part may leave its socket before it stops reading as one body, in studs. Measured
--- on Arczi's Ultimate R6 Movement System (arms 0.15 idle, 0.4 walk, 0.7 run; legs ride up into the
+-- on the user's R6 movement system (arms 0.15 idle, 0.4 walk, 0.7 run; legs ride up into the
 -- torso 0.5-1.5 when the body drops) and on Creator Store R6 punch packs (the striking arm 0.5-1.4
 -- out at contact). R6Clip.audit warns past these; raise them per clip with opts.budget.
 R6Rig.GAP = {

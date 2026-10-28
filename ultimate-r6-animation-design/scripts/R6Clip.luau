@@ -17,7 +17,7 @@
 --                limbs raise/spread/swing/twist
 --   pos = { forward, up, right }  studs. On the torso: the body against the root (drop, lunge). On
 --                a limb or the head: the part slides out of its socket. This is how R6 gets reach and
---                force: Arczi's run throws the arms 0.7 stud along their swing, battlegrounds punches
+--                force: the movement system's run throws the arms 0.7 stud along their swing, battlegrounds punches
 --                push the striking shoulder 0.5-1.4 stud at the target, legs ride up 0.5-1.5 stud
 --                into the torso when the body sinks (R6 has no knees). Budgets: R6Rig.GAP.
 --   space = "root"  (legs) hang the leg from a pelvis that takes only `hips` (default 0.35) of the

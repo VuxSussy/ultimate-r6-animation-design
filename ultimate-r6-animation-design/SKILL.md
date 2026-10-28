@@ -1,6 +1,6 @@
 ---
 name: ultimate-r6-animation-design
-description: 'Ultimate R6 Animation Design. Build, fix, convert and run Roblox R6 animations that hit with force instead of looking stiff, plastic or timid. Reference first: find the same move already made for R6 (the user''s files, Creator Store packs, video), measure it with the bundled study tool and imitate it; with no R6 version, follow the movement grammar of Arczi''s Ultimate R6 Movement System. Poses are keyed angles plus short slides of the limbs out of the torso (no IK, no FK/IK solver), legs hang from a pelvis so they never cross, and an audit checks pops, hit timing, commitment, slide budgets, crossed legs and floor contact. Also R15 to R6 conversion and a combat kit (dash, jab, cross, hook, uppercut, kick, block, hit reactions, combos, hit-stop) with a 3D preview. Use it whenever someone animates an R6 rig (Torso, Left Arm, Right Leg...): a punch, kick, dash, combo, idle, walk, run, emote; an animation that looks stiff, robotic, plastic, cramped or weak; weight, timing, easing; requests for IK or FK on R6; turning an R15 animation into R6; KeyframeSequences, AnimSaves, Moon Animator or Eclipse Animator work; or a battlegrounds-style combat system. Use it even when "R6" is not said but the rig has six parts.'
+description: 'Ultimate R6 Animation Design. Build, fix, convert and run Roblox R6 animations that hit with force instead of looking stiff, plastic or timid. Reference first: find the same move already made for R6 (the user''s files, Creator Store packs, video), measure it with the bundled study tool and imitate it; with no R6 version, follow the movement grammar of the user''s R6 movement system. Poses are keyed angles plus short slides of the limbs out of the torso (no IK, no FK/IK solver), legs hang from a pelvis so they never cross, and an audit checks pops, hit timing, commitment, slide budgets, crossed legs and floor contact. Also R15 to R6 conversion and a combat kit (dash, jab, cross, hook, uppercut, kick, block, hit reactions, combos, hit-stop) with a 3D preview. Use it whenever someone animates an R6 rig (Torso, Left Arm, Right Leg...): a punch, kick, dash, combo, idle, walk, run, emote; an animation that looks stiff, robotic, plastic, cramped or weak; weight, timing, easing; requests for IK or FK on R6; turning an R15 animation into R6; KeyframeSequences, AnimSaves, Moon Animator or Eclipse Animator work; or a battlegrounds-style combat system. Use it even when "R6" is not said but the rig has six parts.'
 ---
 
 # Ultimate R6 Animation Design
@@ -11,8 +11,8 @@ from the torso committing to the move, and from limbs **sliding a short way out 
 works in three rules:
 
 1. **Reference first.** Before posing anything, look for the same move already made for R6, measure
-   it, and imitate it. Only if no R6 version exists, follow the user's chosen house style: Arczi's
-   *Ultimate R6 Movement System*. (`references/reference-first.md`)
+   it, and imitate it. Only if no R6 version exists, follow the user's chosen house style: their own R6 movement
+   system. (`references/reference-first.md`)
 2. **No IK, no FK/IK system.** A clip is exactly the poses you key: named angles plus `pos`
    slides. The first version of this skill used IK aims and planted-leg solving; the user found the
    result cramped and timid, so it was removed. (`references/posing.md`)
@@ -29,7 +29,7 @@ works in three rules:
 | `scripts/R6Study.luau` | measure an R6 clip for imitation: strike line, torso commit, socket slides | everywhere |
 | `scripts/R6Clip.luau` | build clips from key poses, bake, thin, export, **audit** | everywhere |
 | `scripts/CombatMoves.luau` | 13 ready clips with gameplay numbers (`references/combat.md`) | everywhere |
-| `scripts/Locomotion.luau` | Idle, Walk, Run, Climb, Jump, Fall, Land / LandShort / LandLong (Arczi), WallRunRight/Left (Creator Store parkour pack) | everywhere |
+| `scripts/Locomotion.luau` | Idle, Walk, Run, Climb, Jump, Fall, Land / LandShort / LandLong (movement system), WallRunRight/Left (Creator Store parkour pack) | everywhere |
 | `scripts/R6Locomotion.luau` | client driver: wall run, landings, climb, jump/fall, idle/walk/run/Stance from the real state and speed | client |
 | `scripts/R6WallRun.luau` | a small client wall run that drives the WallRunLeft/Right clips (tune the gameplay yourself) | client |
 | `scripts/R15ToR6.luau` | R15 → R6 through body points, with limb slides (offline or sampled in Studio) | everywhere |
@@ -42,7 +42,7 @@ from `rokit.toml` there).
 
 References, read the one that matches the job:
 - `references/reference-first.md`: where to find R6 references, loading them safely, `study`,
-  how to imitate, Arczi's grammar, measured tables. **Read for every new animation.**
+  how to imitate, the house grammar, measured tables. **Read for every new animation.**
 - `references/posing.md`: the rig, named angles, part entries, slides and budgets, legs on the
   pelvis, why there is no IK. **Read before keying.**
 - `references/weight-and-feel.md`: timing, easing per segment, overlap, holds, the anti-plastic
@@ -57,7 +57,7 @@ References, read the one that matches the job:
    (`~/Downloads/*.rbxm`, rigs' `AnimSaves` in the open place), the Creator Store through Studio
    MCP (`search_assets` "R6 <move> animation", load with `game:GetObjects`, **destroy every script
    before parenting**, `export_rbxm` to the scratchpad), R15 packs converted, then video. No R6
-   version anywhere: use Arczi's grammar (§5) and say so.
+   version anywhere: use the house grammar (§5) and say so.
 2. **Measure it.** `lune run study <file> [clip]`: length, chamber and hit frames, release and hold,
    torso twist/lean/drop/lunge at contact, how far each limb leaves its socket, where the fist or
    foot ends. `--keys=0,6,12` also prints the reference's poses at those frames as R6Clip key
@@ -168,16 +168,16 @@ Studio: `R15ToR6.sampleInStudio` → `convertSampled`; whole packs: `eclipse-ani
 ## Locomotion quick start
 
 `Locomotion.build()` gives Idle, Walk, Run, Climb, Jump, Fall, Land, LandShort, LandLong,
-WallRunRight, WallRunLeft, each rebuilt from an R6 reference (`reference-first.md` §4: Arczi's
+WallRunRight, WallRunLeft, each rebuilt from an R6 reference (`reference-first.md` §4: the movement system's
 clips, and the Creator Store "R6 Parkour Animations" wall run). `R6Locomotion.new(character, {
 animations = {...} })` picks the clip from the real state, in this order:
 - wall run while `R6WallRun` holds a wall (airborne, fast, a wall at one side; jump kicks off)
-- a landing after a fall, by the height fallen since Freefall began (Arczi): under 4 studs Land,
+- a landing after a fall, by the height fallen since Freefall began (movement system): under 4 studs Land,
   4-15 LandShort, over 15 LandLong
 - Climb at vertical speed / 12 (paused when the climber stops)
 - Jump on take-off, then Fall
 - on the ground: Idle (or the guard Stance for 3 s after `loco:combat()`), Walk at speed / 14.5
-  (reversed backwards), Run at 1.3 once `WalkSpeed` ≥ 20 (Arczi: walk 12, Shift sprint 27)
+  (reversed backwards), Run at 1.3 once `WalkSpeed` ≥ 20 (movement system: walk 12, Shift sprint 27)
 
 `loco:setAnimation("Idle", clip)` swaps a state's clip at runtime (a weapon's guard when a weapon
 is drawn). Several movesets on one character: one `R6Combat` per moveset (e.g. fists and sword,
@@ -219,7 +219,7 @@ code and a check that fails if it comes back. Do not remove the checks to make a
 | A 60-degree torso twist swapped the hips and crossed the legs into an X | legs on a pelvis (`space = "root"`, `hips` 0.35); R15ToR6 hangs legs from the R15 pelvis | audit `legs` (centre lines, X from side/front); tests |
 | An arm flung back (raise -55) came home to the guard (150) over the head: rotation blends take the shortest way, and 193 degrees is "shorter" backwards | R6Clip interpolates the named angles, not the rotations | audit `overhead` and `export`; test on all four dashes |
 | Reading an overhead arm back out of a clip gave swing ±179, which interpolates as a full spin | `R6Study.entry` picks the Euler split and 360-wrap nearest the previous frame | test "study angles stay continuous" |
-| Arczi's own walk/run/fall "cross" from the side: legs passing in a stride | `meta.stride = true` (front view only) | audit `legs` |
+| The reference walk/run/fall "cross" from the side: legs passing in a stride | `meta.stride = true` (front view only) | audit `legs` |
 | Roblox's default Animate stopped the idle the moment it loaded | empty `Animate` script; R6Locomotion replays a stopped loop | playtest |
 | The wall run caught the wall in the Jumping frame, before the jump's push, and "landed" at once | catch walls only in Freefall, 1.5 studs clear of the floor; keep the jump's rise | playtest |
 | Dash distances measured wrong because someone was steering the character | disable the PlayerModule controls (or WalkSpeed 0) while measuring | playtest method |

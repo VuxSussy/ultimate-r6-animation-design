@@ -7,19 +7,19 @@ animation with force and commitment: not stiff like plastic, and not cramped or 
 
 1. **Reference first.** For any animation, first look for an R6 version of the same move: your
    files, the Creator Store (through Studio MCP), converted R15 clips, video. Measure it with
-   `lune run study` and imitate the numbers. With no R6 version, follow the movement of Arczi's
-   *Ultimate R6 Movement System*.
+   `lune run study` and imitate the numbers. With no R6 version, follow the movement of your own R6 movement
+   system.
 2. **No IK, no FK.** No more `aim` keys, `planted` leg solving or `headCounter`, and no `R6Layers`
    module with its FK+IK / FK / IK / None modes. A clip plays exactly as keyed.
 3. **Parts may leave the torso a short way.** Every part takes `pos` to slide out of its socket.
-   Budgets measured from Arczi's file and R6 punch packs: arms up to 1.0 stud, legs 1.5 (mostly
+   Budgets measured from the movement system file and R6 punch packs: arms up to 1.0 stud, legs 1.5 (mostly
    riding up into the torso instead of bending a knee), head 0.15 (rotation only).
 4. **Legs never cross.** Legs hang from a "pelvis" that takes only 35% of the torso's turn
    (`space = "root"`), and `ground = true` slides them so the soles stay on the floor. The audit
    flags legs passing through each other or forming an X from the side or the front.
 5. **A "timid" audit.** A straight punch must turn the torso 40 degrees or more and put the fist at
    least 2.8 studs in front of the root. References: torso 30-110 degrees, fist 2.3-4.2 studs out.
-6. **New Idle, Walk, Run** (`Locomotion.luau`), imitating Arczi's `idle v2`, `walk v3`, `run v4`
+6. **New Idle, Walk, Run** (`Locomotion.luau`), imitating the movement system's `idle v2`, `walk v3`, `run v4`
    (walk within 4.8 degrees, run 3.9), with the `R6Locomotion` driver: walking at 12 studs/s plays
    the walk at speed / 14.5, holding Shift to run at 27 plays the run at 1.3, walking backwards
    plays the walk in reverse, and after a fight action the guard shows for 3 s before idle.
@@ -35,7 +35,7 @@ animation with force and commitment: not stiff like plastic, and not cramped or 
    (a fist above the shoulders and behind the back) and an `export` check (the exported file plays
    the same as the clip when Roblox does its own blending).
 10. **Climb, jump, fall, three landings and a wall run.** Climb, jump, fall and the landings imitate
-    Arczi's clips; the landing is picked by fall height (under 4 studs light, 4-15 short, over 15
+    the movement system's clips; the landing is picked by fall height (under 4 studs light, 4-15 short, over 15
     long). The wall run imitates the Creator Store "R6 Parkour Animations" pack and comes with an
     `R6WallRun` module so it really runs: jump next to a wall while moving fast to run along it for
     about 1.4 s; jump again to kick off.
@@ -58,7 +58,7 @@ animation with force and commitment: not stiff like plastic, and not cramped or 
 
 References in `ultimate-r6-animation-design/references/`:
 - `reference-first.md`: where to find references, loading them safely, measuring with `study`,
-  how to imitate, and measured tables for Arczi's clips and the R6 punch packs.
+  how to imitate, and measured tables for the movement system's clips and the R6 punch packs.
 - `posing.md`: the R6 rig, named angles, `pos`, slide budgets, legs on a pelvis, why there is no IK.
 - `weight-and-feel.md`, `combat.md`, `r15-to-r6.md`, `sources.md`.
 
@@ -68,13 +68,13 @@ Measure every R6 animation in a file to imitate it (timing, strike frames, torso
 lunge, how far parts leave their sockets):
 
 ```bash
-lune run study "~/Downloads/Ultimate R6 Movement System.rbxm"
+lune run study "<movement-system>.rbxm"
 ```
 
 Print a reference clip's poses at chosen frames, as R6Clip key tables ready to paste:
 
 ```bash
-lune run study "~/Downloads/Ultimate R6 Movement System.rbxm" "walk v3" --keys=0,6,12,18,24
+lune run study "<movement-system>.rbxm" "walk v3" --keys=0,6,12,18,24
 ```
 
 Run the 192 tests:

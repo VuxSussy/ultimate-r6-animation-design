@@ -89,14 +89,14 @@ The slide is the R6 animator's substitute for an elbow, a knee, a shoulder blade
 
 | Part | Budget (`R6Rig.GAP`) | Where the number comes from | Typical use |
 |---|---|---|---|
-| arm | 1.0 stud | Arczi: idle 0.15, walk 0.4, run 0.7, crawl 0.9; punch packs: 0.5-1.0 at contact | punch +0.6-0.9 forward; guard +0.15-0.2; rear hand −0.1 inward; recoil −0.25 back |
-| leg | 1.5 studs | Arczi: walk 1.0, run 1.3, landings 1.3-1.6, crouch 1.1 | riding up into the torso as the body drops (`ground = true` does this); kick +0.6 out of the hip |
-| head | 0.15 stud | Arczi never moves the head off the neck (0 in all 15 clips) | rotation only |
+| arm | 1.0 stud | movement system: idle 0.15, walk 0.4, run 0.7, crawl 0.9; punch packs: 0.5-1.0 at contact | punch +0.6-0.9 forward; guard +0.15-0.2; rear hand −0.1 inward; recoil −0.25 back |
+| leg | 1.5 studs | movement system: walk 1.0, run 1.3, landings 1.3-1.6, crouch 1.1 | riding up into the torso as the body drops (`ground = true` does this); kick +0.6 out of the hip |
+| head | 0.15 stud | The movement system never moves the head off the neck (0 in all 15 clips) | rotation only |
 
 - **"A short distance."** The user wants limbs out of the torso only a little. Community packs
   throw the striking arm 1.3-3.9 studs (visible); we stop at 1.0. Raise a clip's budget only when
   the user asks (`R6Clip.new(name, { budget = { LeftArm = 1.4 } })`).
-- **Slide along the motion.** Arczi's arms slide forward on the forward swing and back on the back
+- **Slide along the motion.** The movement system's arms slide forward on the forward swing and back on the back
   swing; a punch pushes the shoulder along the punch line. A slide across the motion reads as a
   dislocated limb.
 - **Slides ease like angles.** They interpolate with the same ease; a 0.8-stud slide in 2 frames
@@ -118,7 +118,7 @@ kit's Cross. Three tools stop it:
    `hips = 0` keeps the legs exactly on the root; `hips = 1` is the old torso-space behaviour.
 2. **`ground = true`**: every frame the leg slides straight up or down (root space) until its sole
    is on the floor. No angle changes. When the body sinks, the legs ride up into the torso:
-   Arczi's crouch, worked out for you. Between a grounded key and a free one (a kick chamber) it
+   the movement system's crouch, worked out for you. Between a grounded key and a free one (a kick chamber) it
    fades in or out.
 3. **The audit's leg checks**:
    - the legs' centre lines must stay 0.75 stud apart (two one-stud blocks closer than that pass
@@ -138,7 +138,7 @@ How to pose legs for a strike: front leg `raise` 18-30 (steps forward), rear leg
   keyed. Nothing extra runs at runtime.
 - **Procedural motion on top** (lean into velocity, a strafe turn), if a game wants it, belongs in
   `PreSimulation`, multiplying the Transform the Animator just wrote; it then resets every frame.
-  Arczi's Turning script writes `C0` instead, which persists and fights other scripts. This skill
+  The reference system's Turning script writes `C0` instead, which persists and fights other scripts. This skill
   no longer ships a runtime layer module; keep such scripts small and separate from the clips.
 - **All of this is visual.** Hit shapes and gameplay read the HumanoidRootPart on the server,
   never the drawn limbs, so a slid fist never changes the hitbox.

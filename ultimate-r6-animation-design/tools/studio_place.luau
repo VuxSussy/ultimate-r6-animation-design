@@ -192,7 +192,7 @@ local seen = {}
 humanoid.StateChanged:Connect(function(_, new)
 	character:SetAttribute("HumanoidState", new.Name)
 end)
--- Arczi's speeds: walk 12, Shift to sprint at 27
+-- The movement system's speeds: walk 12, Shift to sprint at 27
 humanoid.WalkSpeed = 12
 UIS.InputBegan:Connect(function(input, processed)
 	if not processed and input.KeyCode == Enum.KeyCode.LeftShift then

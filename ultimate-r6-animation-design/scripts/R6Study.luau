@@ -1,5 +1,5 @@
 -- R6Study: measure an R6 animation the way you need to copy it. Point it at any R6
--- KeyframeSequence (a Creator Store pack, the user's own rig, Arczi's movement system) and it
+-- KeyframeSequence (a Creator Store pack, the user's own rig, the user's movement system) and it
 -- answers the questions that matter when you imitate a clip:
 --   when   length, where the strike peaks (share of the move), how many frames the release and the
 --          hold take, which easing styles the poses use

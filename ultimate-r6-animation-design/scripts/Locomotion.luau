@@ -1,5 +1,5 @@
--- Locomotion: idle, walk and run for R6, imitating the user's house style, Arczi's *Ultimate R6
--- Movement System* ("idle v2", "walk v3", "run v4"). Measured with `lune run study ... --keys=`,
+-- Locomotion: idle, walk and run for R6, imitating the user's house style, their R6 movement
+-- system ("idle v2", "walk v3", "run v4"). Measured with `lune run study ... --keys=`,
 -- then rebuilt as our own key poses: angles plus slides, no IK.
 --
 --   local clips = Locomotion.build()          -- name -> { clip, baked, meta }
@@ -14,9 +14,9 @@
 -- Walk and run are half cycles plus their mirror (the reference is symmetric). Fidelity against
 -- the reference: walk within 4.8 degrees, run 3.9, idle 1.2.
 -- Also climb, jump, fall, three landings and a wall run, picked the same way (reference first):
---   Climb, Jump, Fall, Land, LandShort, LandLong  Arczi's "Climbing", "jump", "fall", "Normal Land",
+--   Climb, Jump, Fall, Land, LandShort, LandLong  The movement system's "Climbing", "jump", "fall", "Normal Land",
 --         "Short", "Long" (landing tiers by fall height: under 4 studs, 4-15, over 15)
---   WallRunRight / WallRunLeft  Arczi has none, so the Creator Store "R6 Parkour Animations"
+--   WallRunRight / WallRunLeft  the movement system has none, so the Creator Store "R6 Parkour Animations"
 --         (asset 15259391918, free to use with credit) WallRunR: a sprint cycle with the torso tilted
 --         25 degrees away from the wall; the left one is its mirror
 -- Keys were chosen with `lune run study --fit=4` (6 for the long Climb and Fall loops): the fewest
@@ -164,7 +164,7 @@ local IDLE = {
 	},
 }
 
--- Arczi climbing, 2.167 s loop
+-- reference climbing, 2.167 s loop
 local CLIMB = {
 	[0] = {
 		Torso = { pos = { forward = -0.15, up = -0.01 } },
@@ -288,7 +288,7 @@ local CLIMB = {
 	},
 }
 
--- Arczi jump, 0.433 s
+-- reference jump, 0.433 s
 local JUMP = {
 	[0] = {
 		Torso = { lean = 8.5, twist = 3, tilt = -1.7, pos = { forward = -0.09, up = 0.07 } },
@@ -388,7 +388,7 @@ local JUMP = {
 	},
 }
 
--- Arczi fall, 1.35 s loop
+-- reference fall, 1.35 s loop
 local FALL = {
 	[0] = {
 		Torso = { lean = -5.1, twist = -1, pos = { forward = -0.16, up = 0.13, right = 0.01 } },
@@ -608,7 +608,7 @@ local FALL = {
 	},
 }
 
--- Arczi Normal Land, 0.167 s
+-- reference Normal Land, 0.167 s
 local LAND = {
 	[0] = {
 		Torso = { lean = 14.9, twist = -3.7, tilt = -0.5, pos = { forward = 0.32, up = -0.91 } },
@@ -624,7 +624,7 @@ local LAND = {
 	},
 }
 
--- Arczi Short, 0.467 s
+-- reference Short, 0.467 s
 local LAND_SHORT = {
 	[0] = {
 		Torso = { pos = { up = -0.09 } },
@@ -724,7 +724,7 @@ local LAND_SHORT = {
 	},
 }
 
--- Arczi Long, 0.667 s
+-- reference Long, 0.667 s
 local LAND_LONG = {
 	[0] = {
 		Torso = { lean = -13.9, pos = { up = -0.09 } },
@@ -1030,7 +1030,7 @@ local function fromKeys(name, keys, opts)
 end
 
 function Locomotion.Climb()
-	-- Arczi plays it at climbing speed / 12
+	-- The movement system plays it at climbing speed / 12
 	return fromKeys("Climb", CLIMB, { loop = true, meta = { airborne = true, speed = 12 } })
 end
 
@@ -1045,13 +1045,13 @@ end
 
 local DEEP = { LeftLeg = 1.7, RightLeg = 1.7 }
 
--- Landings by fall height (Arczi's tiers): a quick dip, a fold with the arms thrown, a deep fold
+-- Landings by fall height (the movement system's tiers): a quick dip, a fold with the arms thrown, a deep fold
 function Locomotion.Land()
 	return fromKeys("Land", LAND, { ground = true, meta = { stride = true } })
 end
 
 function Locomotion.LandShort()
-	-- Arczi's deep landings ride the legs 1.55-1.6 studs into the torso, past the usual 1.5
+	-- The movement system's deep landings ride the legs 1.55-1.6 studs into the torso, past the usual 1.5
 	return fromKeys("LandShort", LAND_SHORT, { ground = true, budget = DEEP, meta = { stride = true } })
 end
 

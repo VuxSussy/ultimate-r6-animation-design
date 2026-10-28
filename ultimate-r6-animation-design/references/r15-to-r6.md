@@ -31,7 +31,7 @@ error on R6.
    crosses the legs. Point the leg from that hip to the R15 sole, then **slide it into or out of
    the torso** (up to `legSlide`, 1.5 studs) so the sole lands on the R15 sole. `opts.hips` (default
    1) scales how much of the pelvis's turn the hips take. Bent R15 knees become the R6 leg
-   riding up into the torso, the way Arczi's crouch and landings do it. `ground = false` turns
+   riding up into the torso, the way the movement system's crouch and landings do it. `ground = false` turns
    the leg slide off. The roll comes from the R15 foot.
 
 There is no IK in this: each frame copies where the R15 points are (`R6Rig.orient` turns a limb

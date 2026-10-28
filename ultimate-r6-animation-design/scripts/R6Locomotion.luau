@@ -1,5 +1,5 @@
 -- R6Locomotion: picks the body's movement clip from what the character is really doing, the way
--- Arczi's Animate and FallSystem scripts do it. Client side, one per character.
+-- the reference movement system's Animate and FallSystem scripts do it. Client side, one per character.
 --
 --   local loco = R6Locomotion.new(character, {
 --       animations = { Idle, Walk, Run, Stance, Climb, Jump, Fall, Land, LandShort, LandLong,
@@ -12,14 +12,14 @@
 --
 -- In order of precedence:
 --   wall run    WallRunLeft / WallRunRight while R6WallRun says so
---   landing     after a fall, by the height fallen since Freefall began (Arczi's tiers): under 4 studs
+--   landing     after a fall, by the height fallen since Freefall began (the movement system's tiers): under 4 studs
 --               Land, 4-15 LandShort, over 15 LandLong; it plays out unless the body moves off
 --   climbing    Climb at vertical speed / 12 (paused when the climber stops, reversed going down)
 --   airborne    Jump once on take-off, then Fall
 --   ground      Idle (or the guard Stance for 3 s after a fight action), Walk at speed / 14.5
---               (reversed walking backwards), Run at 1.3 once WalkSpeed reaches 20 (Arczi: walk 12,
+--               (reversed walking backwards), Run at 1.3 once WalkSpeed reaches 20 (movement system: walk 12,
 --               Shift sprint 27)
--- Blends from Arczi: idle -> walk 0.25 s, walk -> idle 0.30, walk -> run 0.18, run -> walk 0.22.
+-- Blends from the movement system: idle -> walk 0.25 s, walk -> idle 0.30, walk -> run 0.18, run -> walk 0.22.
 -- Attacks (Action priority) play over all of this.
 -- Replace Roblox's default Animate (an empty LocalScript named "Animate" in StarterCharacterScripts
 -- does it): it plays its own walk and, on start, stops every track it finds.
@@ -35,7 +35,7 @@ R6Locomotion.__index = R6Locomotion
 
 R6Locomotion.DEFAULTS = {
 	moving = 0.75, -- studs/s below which the body stands
-	sprintThreshold = 20, -- WalkSpeed at or above this means sprinting (Arczi's crouch script)
+	sprintThreshold = 20, -- WalkSpeed at or above this means sprinting (the movement system's crouch script)
 	walkRate = 14.5, -- studs/s that play the walk at 1x
 	runRate = 1.3,
 	climbRate = 12, -- climbing studs/s that play the climb at 1x
@@ -157,7 +157,7 @@ function R6Locomotion:_stateChanged(old, new)
 		self.jumpedAt = os.clock()
 	end
 	if new == Enum.HumanoidStateType.Freefall then
-		self.fallFrom = self.root.Position.Y -- Arczi measures from where the fall begins
+		self.fallFrom = self.root.Position.Y -- the movement system measures from where the fall begins
 	elseif AIR[old] and not AIR[new] and new ~= Enum.HumanoidStateType.Climbing and self.fallFrom then
 		local fallen = self.fallFrom - self.root.Position.Y
 		self.fallFrom = nil

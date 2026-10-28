@@ -77,7 +77,7 @@ Two references show what makes a light punch hit hard, and the kit's Jab now fol
   - the torso keeps turning about 0.2 s with swing arcs
   - the extension holds about 0.3 s
   - the arm snaps back to guard in 2 frames
-- **Arczi's Combat System (Ultimate Version)** (YouTube `Vcmoez6BXbk`), M1s at 30 fps:
+- **A YouTube combat-system showcase**, M1s at 30 fps:
   - a 2-frame wind-up flash (a Highlight)
   - a 3–4 frame strike, with the whole body diving about 40° forward behind the arm
   - about 3 frames held at contact
@@ -124,7 +124,7 @@ Roblox Pose easing has only Linear, Constant, Elastic, Cubic, Bounce and CubicV2
 Eclipse **bake** anything richer into dense keys, and so does `R6Clip:bake()`: every frame, then
 `R6Clip.reduce` drops keys that straight interpolation reproduces within 0.25°.
 
-All 14 clips in the user's R6 System are baked this way: one key per 1/60 s, all Linear. Dense
+All 14 clips in the user's R6 movement system are baked this way: one key per 1/60 s, all Linear. Dense
 Linear keys are the normal export of good R6 animation, not a smell. Legacy `Cubic` runs with In
 and Out swapped, so use `CubicV2` when writing sparse keys.
 
@@ -142,7 +142,7 @@ and Out swapped, so use `CubicV2` when writing sparse keys.
 - **Delays must not add up.** If drag makes the fist late for the hit, the audit's contact check
   flags it.
 - **The head counters, by hand.** Key `turn` at about −0.4 × the torso twist and ease off the nod,
-  so the eyes stay on the target. Arczi's system takes back 35% of its sprint lunge at the neck. The
+  so the eyes stay on the target. The movement system takes back 35% of its sprint lunge at the neck. The
   hydraz run reference keeps the head level while the chest twists 30–45°. Never slide the head.
 - **Springs give character.** Lightly underdamped head and waist (motion bible dials): bake the
   wobble into keys with a lead of −2 on the head, or a `settle` ease.
@@ -165,11 +165,11 @@ and Out swapped, so use `CubicV2` when writing sparse keys.
 - **Rotating the torso drags the legs,** because the legs are children of the Torso (DevForum),
   and a big twist swaps the hips front-to-back and crosses the legs. Hang the legs from the pelvis
   (`space = "root"`, `hips` 0.35) and ground them (`ground = true`): when the hips drop, the legs
-  ride up into the torso, Arczi's way.
+  ride up into the torso, the movement system's way.
 - **A foot passing under a lowered hip** (a step, a kick chamber) needs a passing key with the
   body risen. The leg has no knee to fold.
 - **No elbows.** To suggest a bent elbow or a cocked fist, move the whole arm to where the forearm
-  would be, and let the shoulder "detach" from the torso a little (DevForum R6 thread; Arczi's
+  would be, and let the shoulder "detach" from the torso a little (DevForum R6 thread; the movement system's
   clips slide arms 0.15-0.9 stud). That slide is `pos` on the arm.
 - **Treat the knee as if it sat at the hip** (DevForum). Small hops at the end of moves stand in
   for toes rising.
@@ -183,7 +183,7 @@ and Out swapped, so use `CubicV2` when writing sparse keys.
 
 ## 7. Locomotion numbers (measured)
 
-These come from the user's R6 System (Arczi's *Ultimate R6 Movement System*), measured offline.
+These come from the user's R6 movement system, measured offline.
 The clips are baked at 60 fps, all Linear.
 
 | Clip | Length | Key facts |
@@ -236,7 +236,7 @@ raycasts. This skill ships neither: clips play as authored.
   - Nullscript cuts to a close-up on a fist clash and holds it about 0.5 s.
   - Hovark (TikTok) flashes a blank frame, then cuts to a near-POV angle at contact, with tilted
     (dutch) angles on aerials.
-  - FOV kicks on dashes (Arczi, DevForum).
+  - FOV kicks on dashes (movement system, DevForum).
 - **Effects meet the motion, never bury it:**
   - a one-frame impact star at contact, with radial speed lines (Nullscript)
   - white arc trails on swings
@@ -251,7 +251,7 @@ Run it on every clip, by eye in `preview.html` at 1× and 0.25×, and with `R6Cl
 - [ ] Brief written: weight, striking limb, what reads first, keywords.
 - [ ] Load opposite the strike. The torso twists through the hit in the right direction
   (orthodox: jab and lead hook clockwise, cross and uppercut counter-clockwise).
-- [ ] A reference found and measured (`reference-first.md`), or the fallback to Arczi's grammar
+- [ ] A reference found and measured (`reference-first.md`), or the fallback to the house grammar
   said out loud.
 - [ ] Hit at 20–50%, strike over 3–5 frames, contact held 4–6 frames with a little creep.
 - [ ] The body commits: torso turned 40+ into a straight punch, a lunge, the fist 2.8+ studs out.

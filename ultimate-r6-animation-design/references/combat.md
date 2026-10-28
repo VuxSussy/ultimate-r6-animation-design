@@ -72,13 +72,13 @@ Meta fields:
 - **Crossfades.** The first hit fades in over 0.04 s, later hits over 0.1 s (DevForum: 0.1–0.15 s
   between combo hits), reactions over 0, and the way out over 0.15 s.
 - **Spacing.** Hits about 0.33–0.45 s apart read clearly; at 0.35 s and below, clips start to
-  smear into each other (DevForum). Arczi's Combat System spaces its M1s about 0.63 s apart.
+  smear into each other (DevForum). A YouTube combat system spaces its M1s about 0.63 s apart.
 - **Random variants.** A combo slot can list several clips (`combo = { { "Jab", "JabHigh" },
   "Cross", ... }`). R6Combat picks one at random and never the same one twice in a row, so a
-  string never looks pasted (Arczi's "random M1 combos").
+  string never looks pasted ("random M1 combos").
 - **Wind-up highlight.** `R6Combat` flashes a `Highlight` on the attacker over `meta.windup`
-  (frames), then fades it over 0.12 s. It is a telegraph the defender can read (Arczi's Combat
-  System). Turn it off with `config = { windup = false }`.
+  (frames), then fades it over 0.12 s. It is a telegraph the defender can read (a YouTube combat
+  system). Turn it off with `config = { windup = false }`.
 - **Ideas from the same system, to build on the server:**
   - a *bodyshot* that lands only while the target blocks
   - a *block break*
@@ -89,7 +89,7 @@ Meta fields:
 The clip sells the burst (crouch → hard lean → arms flung back → brake and settle). The user's
 rules: arms swing back during a dash, side dashes never hold a block guard, and the back dash ends
 in a grounded kneel (one leg forward, one behind, hands to the ground and back). The kneel's depth
-comes from Arczi's long landing (body down 1.18, legs riding 1.05-1.58 into the torso). Physics carries the
+comes from the movement system's long landing (body down 1.18, legs riding 1.05-1.58 into the torso). Physics carries the
 body:
 - **A `LinearVelocity`** in Plane mode on the root attachment (X/Z only, so gravity still acts),
   created once per character.
@@ -100,7 +100,7 @@ body:
 - **Direction.** `dash("Forward"|"Back"|"Left"|"Right")` is relative to the root.
   `dash(worldVector)` picks the clip from the local direction (for camera-relative input).
 - **Cooldown** 0.55 s. Dashing during a recovery is buffered like attacks.
-- **Juice.** An FOV kick on dash (Arczi: FOV per state, eased over 0.35–0.5 s), dust at the start,
+- **Juice.** An FOV kick on dash (movement system: FOV per state, eased over 0.35–0.5 s), dust at the start,
   an optional afterimage that must never read as an extra enemy.
 
 ## 5. Hit-stop and reactions
@@ -200,7 +200,7 @@ and the team's `AGENTS.md`). The animation layer stays the same.
 ## 8. Adding a move
 
 1. Find the move made for R6 and measure it (`reference-first.md`); write the brief from those
-   numbers. Fall back to Arczi's grammar only when no R6 version exists. In the motion bible,
+   numbers. Fall back to the house grammar only when no R6 version exists. In the motion bible,
    fists are "Brawler": snappy, punchy, overshoot, settle, whippy.
 2. Copy the closest kit move and change the poses, not the structure: guard, chamber, contact,
    hold, recovery, with the same eases. Commit the body (torso twist and lunge), slide the striking

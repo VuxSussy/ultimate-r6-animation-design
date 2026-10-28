@@ -3,7 +3,7 @@
 Every new animation starts by looking for the same move already made **for R6**. A real R6 clip
 already solved the problems a six-block body has (no elbows, no knees, a torso that is the spine),
 so its timing, angles and slides are worth more than any rule of thumb. Only when no R6 version
-exists do you fall back to the movement grammar of Arczi's *Ultimate R6 Movement System*
+exists do you fall back to the movement grammar of the user's R6 movement system
 (section 5), which the user picked as the house style.
 
 ## Contents
@@ -11,7 +11,7 @@ exists do you fall back to the movement grammar of Arczi's *Ultimate R6 Movement
 2. Loading a reference safely
 3. Measuring it (`lune run study`)
 4. Imitating it
-5. No R6 reference: Arczi's grammar
+5. No R6 reference: the house grammar
 6. Measured references (tables)
 
 ## 1. Where to look, in order
@@ -21,7 +21,7 @@ Stop at the first source that has the move (or something close: a "heavy punch" 
 
 1. **The user's own files.** `~/Downloads/*.rbxm|*.rbxl`, the project's `output/`, rigs with an
    `AnimSaves` folder in the open Studio place (`robloxstudio` `search_objects` for
-   `KeyframeSequence`). The user's R6 System lives at `~/Downloads/Ultimate R6 Movement System.rbxm`
+   `KeyframeSequence`). The user's R6 movement system lives at `<movement-system>.rbxm` (in `~/Downloads`)
    (15 locomotion clips: idle, walk, run, jump, fall, three landings, crouch, crawl, climb).
 2. **The Creator Store, through Studio MCP.** `search_assets` with `assetType = "Model"` and a
    plain query: `"R6 punch animation"`, `"R6 kick animation"`, `"R6 dash animation"`,
@@ -117,9 +117,9 @@ In Studio (no Lune), `R6Study` is a ModuleScript like the others:
 6. **Look at both** in Studio side by side (pose both rigs at the `Hit` frame, or play them), not
    only at the numbers.
 
-## 5. No R6 reference: Arczi's grammar
+## 5. No R6 reference: the house grammar
 
-The user's *Ultimate R6 Movement System* measured with `study` (all 15 clips: 60 fps baked, Linear).
+The user's R6 movement system measured with `study` (all 15 clips: 60 fps baked, Linear).
 These are the house rules when nothing closer exists:
 
 - **The head never leaves the neck** (gap 0 in every clip). Move it by rotation only.
@@ -137,11 +137,11 @@ These are the house rules when nothing closer exists:
   a sprint-start lunge (see `weight-and-feel.md` section 7).
 
 For a combat move with no reference, combine this grammar with the measured punch numbers in
-section 6: commit the body like the punch packs, keep the slides inside Arczi's sizes.
+section 6: commit the body like the punch packs, keep the slides inside the movement system's sizes.
 
 ### Worked example: the kit's Idle, Walk and Run
 
-1. `lune run study "~/Downloads/Ultimate R6 Movement System.rbxm" "walk v3" --keys=0,6,12,18,24`
+1. `lune run study "<movement-system>.rbxm" "walk v3" --keys=0,6,12,18,24`
    printed five poses; the clip is symmetric (frame 25 mirrors frame 0), so the cycle is those five
    plus `R6Clip.mirror` of each.
 2. Key spacing was chosen by measuring the rebuilt clip against the reference every frame: walk
@@ -153,12 +153,12 @@ section 6: commit the body like the punch packs, keep the slides inside Arczi's 
 
 ### Worked example: climb, jump, fall, landings, wall run
 
-- Arczi's "Climbing", "jump", "fall", "Normal Land", "Short", "Long" were fitted with
+- The movement system's "Climbing", "jump", "fall", "Normal Land", "Short", "Long" were fitted with
   `lune run study ... --fit=4` (6 for the long Climb and Fall loops): 2-27 keys each.
 - The landings' soles dip 0.14-0.15 stud into the floor in the reference: `ground = true` on the
-  legs. Arczi's deep landings ride the legs 1.55-1.6 studs into the torso, past the 1.5 budget:
+  legs. The movement system's deep landings ride the legs 1.55-1.6 studs into the torso, past the 1.5 budget:
   those two clips carry `budget = 1.7` for the legs, a choice backed by the reference.
-- No wall run in Arczi's file, so the Creator Store came next: "R6 Wall Run" packs (103291843985457,
+- No wall run in the movement system file, so the Creator Store came next: "R6 Wall Run" packs (103291843985457,
   13289041733) barely move the torso; "R6 Parkour Animations" (15259391918, "full rights ... credits
   appreciated") has WallRunR/WallRunL, a sprint cycle with the torso tilted 25 degrees away from the
   wall, legs riding 1.15 stud. Fitted at 4 degrees (18 keys); the left run is `R6Clip.mirror`.

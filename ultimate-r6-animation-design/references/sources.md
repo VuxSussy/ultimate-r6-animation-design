@@ -1,7 +1,7 @@
 # Where this skill's knowledge comes from
 
 Each source, what was taken from it, and how it was read. Nothing was copied as code from
-third-party work. Arczi's system and Eclipse Animator were read offline, as data only, and are
+third-party work. The user's movement system and Eclipse Animator were read offline, as data only, and are
 described here in our own words, the way the team's clean-room studies do it.
 
 ## Skills that already existed (searched first)
@@ -24,9 +24,9 @@ described here in our own words, the way the team's clean-room studies do it.
 - **Org skill and plugin catalogs:** nothing for R6 animation. `roblox-dev` has no animation
   skill. `animation-studio` is 2D video.
 
-## The user's R6 System: *Ultimate R6 Movement System* by Arczi
+## The user's R6 movement system
 
-Read offline from `~/Downloads/Ultimate R6 Movement System.rbxm` with Lune: 6,683 instances and
+Read offline from `<movement-system>.rbxm` (in `~/Downloads`) with Lune: 6,683 instances and
 75 scripts, nothing run. 15 KeyframeSequences were measured, the second time (2026-10-28) with
 `lune run study`, which added the limb slides: arms 0.15-0.9 stud along their swing, legs riding
 1.0-1.6 into the torso, the head never off the neck. That measurement is the house grammar when no
@@ -78,7 +78,7 @@ Same method (search, `GetObjects` with scripts destroyed, `export_rbxm`, `lune r
 ## The user's correction (2026-10-28)
 
 After the first version the user judged the IK-driven clips cramped, timid and without force and asked for: reference first (find the R6 version and imitate it, else
-follow Arczi's file), no IK/FK systems, and limbs allowed a short way out of the torso. On the
+follow the movement system file), no IK/FK systems, and limbs allowed a short way out of the torso. On the
 first rebuilt Cross they then caught the legs crossing into an X under a 60-degree torso twist,
 which led to the pelvis space (`hips`) and the audit's leg-cross checks. Later the same day they
 caught arms coming home "the long way" over the head after the back dash (rotation blends across
@@ -165,8 +165,8 @@ The audit in `R6Clip.audit` is these hard rules turned into code.
 
   The user asked for a jab with this much force. It is the source of the power-jab recipe in
   `weight-and-feel.md`.
-- **YouTube, *[Free] Combat System (Ultimate Version) | Roblox Studio*** (`Vcmoez6BXbk`, by Arczi,
-  the author of the user's R6 System, 46 s). On-screen features:
+- **YouTube, a free combat-system showcase** (46 s), by the author of the user's R6 movement
+  system. On-screen features:
   - "Random M1 Combos (randomized punch animations and combo chains)"
   - "Wind-Up Highlights (highlight players briefly before attacks)"
   - a knockout system, a bodyshot (lands only while the opponent blocks), block break, dashing, and

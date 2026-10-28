@@ -10,7 +10,7 @@
 --          between (opts.armBlend), then slide out of the socket (up to opts.armSlide) so the fist
 --          lands on the R15 fist
 --   Legs   point at the R15 sole, then ride up into the torso (up to opts.legSlide) so the sole
---          lands on the R15 sole: bent R15 knees become the R6 telescoping leg, the way Arczi's
+--          lands on the R15 sole: bent R15 knees become the R6 telescoping leg, the way the movement system's
 --          movement clips crouch. There is no IK; this is a per-frame copy of the R15 points.
 -- Roll comes from the R15 hand and foot, so held tools keep pointing the right way.
 --
