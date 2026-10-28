@@ -77,8 +77,7 @@ Same method (search, `GetObjects` with scripts destroyed, `export_rbxm`, `lune r
 
 ## The user's correction (2026-10-28)
 
-After the first version the user judged the IK-driven clips "khúm núm, rụt rè, không có độ lực"
-(cramped, timid, no force) and asked for: reference first (find the R6 version and imitate it, else
+After the first version the user judged the IK-driven clips cramped, timid and without force and asked for: reference first (find the R6 version and imitate it, else
 follow Arczi's file), no IK/FK systems, and limbs allowed a short way out of the torso. On the
 first rebuilt Cross they then caught the legs crossing into an X under a 60-degree torso twist,
 which led to the pelvis space (`hips`) and the audit's leg-cross checks. Later the same day they

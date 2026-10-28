@@ -2,8 +2,7 @@
 
 This skill has no IK and no FK/IK solver modes. A clip is the poses you key, nothing more. That
 was the user's call after the first version: IK targets kept every arm at a fixed reach on a fixed
-line and planted-leg solving pinned the hips, so moves came out tucked in and timid ("khúm núm,
-rụt rè"), with no force. Measured R6 references get their force the other way: big torso turns,
+line and planted-leg solving pinned the hips, so moves came out tucked in and timid, with no force. Measured R6 references get their force the other way: big torso turns,
 and limbs **slid a short way out of their sockets** (see `reference-first.md`).
 
 ## Contents

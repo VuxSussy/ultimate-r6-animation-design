@@ -4,7 +4,7 @@
 1. Anatomy of an attack
 2. The starter moves
 3. The M1 string: buffer, cancels, reset
-4. Dashes (lướt)
+4. Dashes
 5. Hit-stop and reactions
 6. Effects and camera pairing
 7. Wiring it up (client and server)
@@ -84,7 +84,7 @@ Meta fields:
   - a *block break*
   - a short *knockout* state
 
-## 4. Dashes (lướt)
+## 4. Dashes
 
 The clip sells the burst (crouch → hard lean → arms flung back → brake and settle). The user's
 rules: arms swing back during a dash, side dashes never hold a block guard, and the back dash ends
