@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: roundhouse-reference-first
+expected_outcome: |
+  Before posing, the agent looks for an existing R6 version of the move (the user's files, for
+  example ~/Downloads/*.rbxm, and/or says the Creator Store search needs Studio MCP), measures any
+  reference it finds with the skill's study tool, and if none is found says it falls back to the
+  grammar of Arczi's Ultimate R6 Movement System. It writes an .rbxm with an R6 roundhouse
+  KeyframeSequence built from keyed angles and pos slides only (no aim/IK keys), with legs hung
+  from the pelvis (space = "root") so they do not cross, a big torso turn into the kick, slides
+  inside the budgets (arm 1.0, leg 1.5, head 0.15), a Hit marker and a held contact. The reply
+  names the reference or the fallback, the hit frame, and the audit result.

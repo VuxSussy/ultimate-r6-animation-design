@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: combo-and-dash-feel-heavy
+expected_outcome: |
+  An .rbxm file with four R6 KeyframeSequences (two jabs, a heavier finisher, a forward dash) is
+  written, built from keyed angles and short pos slides (no IK/aim keys). Each attack has a Hit
+  marker landing 20-50% into the move, a chamber that loads opposite the strike, a torso that turns
+  into the punch with the shoulder slid toward the target, a held contact pose and a recovery that
+  settles; the finisher has a longer hit-stop. The reply says which R6 reference was imitated (or
+  that it fell back to Arczi's movement grammar), lists the hit frame of each clip and notes the
+  clips pass the audit (pops, commitment, slide budgets, crossed legs, foot contact) or names what
+  failed.

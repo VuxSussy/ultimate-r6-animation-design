@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: convert-r15-punch-to-r6
+expected_outcome: |
+  An R6 KeyframeSequence (.rbxm) converted from the R15 punch is written, with poses only on R6
+  parts (Torso, Head, Left/Right Arm, Left/Right Leg). The reply explains that the R6 arm points at
+  the R15 fist and slides a short way out of its socket so the fist lands where the R15 fist was
+  (the elbow bend itself is lost), that hands and feet are gone, and how to repair (arm blend
+  toward the upper arm, re-posing keys with angles and short slides, torso twist with legs on the
+  pelvis), and reports a check of accuracy or an audit.
+context:
+  scaffold_script: place-files.sh
