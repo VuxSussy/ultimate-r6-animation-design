@@ -1,0 +1,7 @@
+.DS_Store
+*.lock
+# eval runs (local only)
+ultimate-r6-animation-design-workspace/
+# built from the team's private R15 clips: kept local
+output/converted/
+output/reference/
