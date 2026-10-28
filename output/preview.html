@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -19,13 +19,13 @@
 </head>
 <body>
 <canvas id="view"></canvas>
-<div id="help">Kéo chuột để xoay camera, cuộn để zoom. Phím Space: chạy/dừng, ←/→: từng khung hình.</div>
+<div id="help">Drag to orbit the camera, scroll to zoom. Space: play/pause, ←/→: step one frame.</div>
 <div id="ui">
   <select id="clip"></select>
-  <button id="play">Dừng</button>
+  <button id="play">Pause</button>
   <select id="speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option><option value="0.1">0.1×</option></select>
-  <select id="cam"><option value="side">Ngang</option><option value="front">Chính diện</option><option value="three">3/4</option><option value="top">Trên xuống</option></select>
-  <label><input type="checkbox" id="trail" checked> Vệt tay/chân</label>
+  <select id="cam"><option value="side">Side</option><option value="front">Front</option><option value="three">3/4</option><option value="top">Top</option></select>
+  <label><input type="checkbox" id="trail" checked> Limb trails</label>
   <label><input type="checkbox" id="ghost"> Onion skin</label>
   <label><input type="checkbox" id="stop" checked> Hit-stop</label>
   <input type="range" id="scrub" min="0" max="1" step="1" value="0">
@@ -89,8 +89,8 @@ function choose(i) {
   } else trailGeo.setFromPoints([]);
 }
 sel.onchange = () => choose(+sel.value);
-document.getElementById("play").onclick = () => { playing = !playing; document.getElementById("play").textContent = playing ? "Dừng" : "Chạy"; };
-scrub.oninput = () => { playing = false; document.getElementById("play").textContent = "Chạy"; t = +scrub.value / clip.fps; };
+document.getElementById("play").onclick = () => { playing = !playing; document.getElementById("play").textContent = playing ? "Pause" : "Play"; };
+scrub.oninput = () => { playing = false; document.getElementById("play").textContent = "Play"; t = +scrub.value / clip.fps; };
 addEventListener("keydown", e => {
   if (e.code === "Space") { document.getElementById("play").click(); e.preventDefault(); }
   if (e.code === "ArrowRight" || e.code === "ArrowLeft") { playing = false; t = Math.max(0, t + (e.code === "ArrowRight" ? 1 : -1) / clip.fps); }
@@ -132,7 +132,7 @@ function loop(now) {
   const limb = LIMB[clip.limb];
   if (limb) rig[limb].material.emissive = new THREE.Color(hitMarker && Math.abs(hitMarker.frame - fi) <= 1 ? 0x661111 : 0x000000);
   scrub.value = fi;
-  info.textContent = `khung ${fi}/${n - 1}  ·  ${(fi / clip.fps).toFixed(3)} s  ·  ${clip.markers.map(m => m.name + "@" + m.frame).join(" ")}`;
+  info.textContent = `frame ${fi}/${n - 1}  ·  ${(fi / clip.fps).toFixed(3)} s  ·  ${clip.markers.map(m => m.name + "@" + m.frame).join(" ")}`;
   camera.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, Math.sin(pitch) * dist - 0.5, Math.cos(yaw) * Math.cos(pitch) * dist - 1.5);
   camera.lookAt(0, -0.5, -1.5);
   renderer.render(scene, camera);
