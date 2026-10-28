@@ -320,7 +320,7 @@ if sword then
 	button.TextSize = 17
 	button.Parent = gui
 	local function label()
-		button.Text = (mode == "Sword" and "Vũ khí: Kiếm" or "Vũ khí: Nắm đấm") .. "  [1]"
+		button.Text = (mode == "Sword" and "Weapon: Sword" or "Weapon: Fists") .. "  [1]"
 	end
 	button.Activated:Connect(function()
 		setMode(mode == "Sword" and "Fists" or "Sword")

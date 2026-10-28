@@ -238,7 +238,7 @@ function CombatMoves.Kick()
 	return c
 end
 
--- Dashes (lướt). The body sells the burst: a short crouch, a hard lean into the travel, the arms
+-- Dashes. The body sells the burst: a short crouch, a hard lean into the travel, the arms
 -- flung BACK out of the guard (no hands up: a dash is not a block), the head dragging behind, then
 -- a brake. The travel itself is physics (R6Combat), starting on the "Go" marker.
 local function dashStart(c, crouch)
