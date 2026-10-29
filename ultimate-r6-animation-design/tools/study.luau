@@ -2,7 +2,10 @@
 --   lune run study <file.rbxm|.rbxmx|.rbxl> [name ...] [--keys=0,12,25]
 -- --keys also prints the clip's poses at those frames as R6Clip key tables (named angles + pos),
 -- ready to imitate. --fit=3 picks the fewest keys that rebuild the clip within 3 degrees instead
--- (--half: only the first half of a symmetric cycle, to mirror). --tip="Right Arm:0,-1,-4" measures
+-- (--half: only the first half of a symmetric cycle, to mirror). --root-legs writes the legs on
+-- the pelvis (space = "root", ground = true): use it for mocap and torso-keyed packs; --hips=0 keeps
+-- the pelvis square while the chest turns (R6 hips are 2 studs wide: a human's small hip turn
+-- crosses R6 legs from the side). --tip="Right Arm:0,-1,-4" measures
 -- that arm's strikes and sweeps from a held weapon's tip (here a 4-stud blade in a Tool's default grip).
 -- Prints, per clip: timing, easing, torso drop/lunge/lean, each part's rotation reach and how far
 -- it leaves its socket (gap), and the shape of every forward strike (chamber, hit, release, hold).
@@ -15,7 +18,7 @@ local file = Env.args[1]
 if not file then
 	error("usage: lune run study <file> [name ...]", 0)
 end
-local names, keyFrames, fit, half, tips = {}, nil, nil, false, nil
+local names, keyFrames, fit, half, tips, rootLegs, hips = {}, nil, nil, false, nil, false, nil
 for i = 2, #Env.args do
 	local keys = string.match(Env.args[i], "^%-%-keys=([%d,]+)$")
 	local tolerance = string.match(Env.args[i], "^%-%-fit=([%d%.]+)$")
@@ -25,6 +28,10 @@ for i = 2, #Env.args do
 		tips[tipPart] = roblox.Vector3.new(tonumber(tx), tonumber(ty), tonumber(tz))
 	elseif tolerance then
 		fit = tonumber(tolerance)
+	elseif Env.args[i] == "--root-legs" then
+		rootLegs = true
+	elseif string.match(Env.args[i], "^%-%-hips=") then
+		hips = tonumber(string.match(Env.args[i], "=(.+)$"))
 	elseif Env.args[i] == "--half" then
 		half = true
 	elseif keys then
@@ -48,7 +55,9 @@ local isR6 = { Torso = true, Head = true, ["Right Arm"] = true, ["Left Arm"] = t
 
 local count = 0
 for _, root in roots do
-	for _, ks in root:GetDescendants() do
+	local all = root:GetDescendants()
+	table.insert(all, 1, root) -- a file whose root IS the KeyframeSequence (what `mocap` writes)
+	for _, ks in all do
 		if ks.ClassName ~= "KeyframeSequence" or (next(names) and not names[ks.Name]) then
 			continue
 		end
@@ -83,7 +92,7 @@ for _, root in roots do
 			print(string.format("  fit within %g degrees: %d keys at frames %s", fit, #frames, table.concat(frames, ",")))
 		end
 		if frames then
-			print(R6Study.formatKeys(R6Study.keyPoses(seq, frames)))
+			print(R6Study.formatKeys(R6Study.keyPoses(seq, frames, 60, { rootLegs = rootLegs, hips = hips })))
 		end
 		print("  from: " .. ks:GetFullName())
 		print()
