@@ -312,7 +312,7 @@ return function(Env, check)
 		local blender = "/Applications/Blender.app/Contents/MacOS/Blender"
 		if fs.isFile(blender) then
 			local out = "fixtures/.synthetic_points.json"
-			local r = process.exec(blender, { "-b", "--factory-startup", "--python", "mocap_points.py", "--", "fixtures/synthetic_cmu.bvh", out, "--fps=30" })
+			local r = process.exec(blender, { "-b", "--factory-startup", "--disable-autoexec", "--python", "mocap_points.py", "--", "fixtures/synthetic_cmu.bvh", out, "--fps=30" })
 			local ok = r.ok and fs.isFile(out)
 			check("blender reads the BVH fixture", ok, r.stderr)
 			if ok then
@@ -325,6 +325,75 @@ return function(Env, check)
 		else
 			print("[check] Blender not found: skipped the mocap_points test")
 		end
+	end
+
+	-- study --root-legs: torso-keyed legs (mocap, many packs) come back on the pelvis giving the same
+	-- foot placement, under a torso that leans 40 and turns 20, with the legs slid in their sockets
+	do
+		local R6Study = Env.load("R6Study")
+		local src = R6Clip.new("TorsoLegs")
+		local function pose(lean, twist)
+			return {
+				Torso = { lean = lean, twist = twist, pos = { up = -0.4 } },
+				LeftLeg = { raise = 30 + lean, spread = 4, pos = { forward = -0.2, up = 0.3 } },
+				RightLeg = { raise = -10 + lean, spread = 6, pos = { up = 0.2 } },
+			}
+		end
+		src:key(0, pose(0, 0))
+		src:key(20, pose(40, 20))
+		local seq = Sequence.read(R6Clip.toKeyframeSequence(src:bake()))
+		for _, hips in { 0.35, 0 } do
+			local keys = R6Study.keyPoses(seq, { 0, 20 }, 60, { rootLegs = true, hips = hips })
+			local again = R6Clip.new("Again")
+			for _, k in keys do
+				-- this synthetic pose is off the floor on purpose: judge the conversion, not grounding
+				k.pose["Left Leg"].ground, k.pose["Right Leg"].ground = nil, nil
+				again:key(k.frame, k.pose)
+			end
+			local worst = 0
+			for _, f in { 0, 20 } do
+				local wa = R6Rig.fk(Sequence.sample(seq, f / 60))
+				local wb = R6Rig.fk(again:sample(f))
+				for _, leg in { "Left Leg", "Right Leg" } do
+					worst = math.max(worst, (R6Rig.tip(leg, wa[leg]) - R6Rig.tip(leg, wb[leg])).Magnitude)
+				end
+			end
+			check("study --root-legs keeps the feet where they were (hips " .. hips .. ")", worst < 0.05, worst)
+		end
+	end
+
+	-- mocap: a planted foot stays planted while the body folds over it (no skating)
+	do
+		local MocapToR6 = Env.load("MocapToR6")
+		local function body(lean)
+			local up = Vector3.new(0, math.cos(math.rad(lean)), -math.sin(math.rad(lean)))
+			local hip = Vector3.new(0, -1, 0)
+			local function at(v)
+				return { v.X, v.Y, v.Z }
+			end
+			local chest = hip + up * 1.1
+			return {
+				Pelvis = at(hip + up * 0.1), LeftHip = at(hip + Vector3.new(-0.2, 0, 0)), RightHip = at(hip + Vector3.new(0.2, 0, 0)),
+				LeftAnkle = { -0.2, -2.87, -0.4 }, RightAnkle = { 0.2, -2.87, 0.3 }, LeftToe = { -0.2, -3, -0.67 }, RightToe = { 0.2, -3, 0.03 },
+				LeftShoulder = at(chest + Vector3.new(-0.4, 0, 0)), RightShoulder = at(chest + Vector3.new(0.4, 0, 0)),
+				LeftElbow = at(chest + Vector3.new(-0.4, -0.6, 0)), RightElbow = at(chest + Vector3.new(0.4, -0.6, 0)),
+				LeftFist = at(chest + Vector3.new(-0.4, -1.4, 0)), RightFist = at(chest + Vector3.new(0.4, -1.4, 0)),
+				Neck = at(chest + up * 0.2), HeadTop = at(chest + up * 0.75),
+			}
+		end
+		local baked = MocapToR6.convert({ fps = 30, frames = { { t = 0, points = body(0) }, { t = 0.5, points = body(45) } } }, {})
+		local w0, w1 = R6Rig.fk(baked.frames[1].transforms), R6Rig.fk(baked.frames[#baked.frames].transforms)
+		local skate = 0
+		for _, leg in { "Left Leg", "Right Leg" } do
+			skate = math.max(skate, (R6Rig.tip(leg, w1[leg]) - R6Rig.tip(leg, w0[leg])).Magnitude)
+		end
+		check("mocap feet stay planted while the body folds 45 degrees", skate < 0.05, skate)
+		local a = R6Clip.audit(baked, {})
+		local crossed = false
+		for _, n in a.notes do
+			crossed = crossed or string.find(n, "^legs") ~= nil
+		end
+		check("mocap fold over a staggered stance does not cross the legs", not crossed, table.concat(a.notes, "; "))
 	end
 
 	-- R6Study reads back what R6Clip keyed: the jab's shoulder slide and its strike frame
@@ -341,6 +410,15 @@ return function(Env, check)
 			end
 		end
 		check("study finds the jab near its Hit marker", strike and math.abs(strike.hit - moves.Jab.meta.hit) <= 2, strike and strike.hit)
+	end
+
+	-- one part under two names in one pose ("RightLeg" from a merge, "Right Leg" added) fails loudly
+	-- instead of keeping whichever the table happens to list last
+	do
+		local ok = pcall(function()
+			R6Clip.new("Twice"):key(0, { RightLeg = { raise = 10 }, ["Right Leg"] = { raise = 20 } })
+		end)
+		check("a part keyed twice under two names is rejected", not ok)
 	end
 
 	-- removed IK keys fail loudly instead of silently doing nothing
