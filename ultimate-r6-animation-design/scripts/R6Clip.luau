@@ -146,6 +146,10 @@ function R6Clip:key(frame, pose, ease)
 	for name, entry in pose do
 		local part = partName(name)
 		checkEntry(part, entry)
+		if key.parts[part] then
+			-- "RightLeg" and "Right Leg" in one pose: which one wins would depend on table order
+			error(string.format("R6Clip: %s is keyed twice at frame %s (under two names)", part, tostring(frame)), 2)
+		end
 		key.parts[part] = entry
 	end
 	self._cache, self._rootCache = {}, {}
