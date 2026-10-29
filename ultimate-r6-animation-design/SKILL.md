@@ -1,6 +1,6 @@
 ---
 name: ultimate-r6-animation-design
-description: 'Ultimate R6 Animation Design. Build, fix, convert and run Roblox R6 animations that hit with force instead of looking stiff, plastic or timid. Reference first: find the same move already made for R6 (the user''s files, Creator Store packs, video), measure it with the bundled study tool and imitate it; with no R6 version, follow the movement grammar of the user''s R6 movement system. Poses are keyed angles plus short slides of the limbs out of the torso (no IK, no FK/IK solver), legs hang from a pelvis so they never cross, and an audit checks pops, hit timing, commitment, slide budgets, crossed legs and floor contact. Also R15 to R6 conversion and a combat kit (dash, jab, cross, hook, uppercut, kick, block, hit reactions, combos, hit-stop) with a 3D preview. Use it whenever someone animates an R6 rig (Torso, Left Arm, Right Leg...): a punch, kick, dash, combo, idle, walk, run, emote; an animation that looks stiff, robotic, plastic, cramped or weak; weight, timing, easing; requests for IK or FK on R6; turning an R15 animation into R6; KeyframeSequences, AnimSaves, Moon Animator or Eclipse Animator work; or a battlegrounds-style combat system. Use it even when "R6" is not said but the rig has six parts.'
+description: 'Ultimate R6 Animation Design. Build, fix, convert and run Roblox R6 animations that hit with force instead of looking stiff, plastic or timid. Reference first: find the same move already made for R6 (the user''s files, Creator Store packs, video), measure it with the bundled study tool and imitate it; for a move the kit has never made (a mage cast, a staff spin, a summon, a bow, a dance) run a research ladder through Creator Store packs, Roblox emotes, free human motion capture converted to R6 with Blender, video and the user acting it out, before posing anything. Poses are keyed angles plus short slides of the limbs out of the torso (no IK, no FK/IK solver), legs hang from a pelvis so they never cross, and an audit checks pops, hit timing, commitment, slide budgets, crossed legs and floor contact. Also R15 to R6 conversion and a combat kit (dash, jab, cross, hook, uppercut, kick, block, hit reactions, combos, hit-stop) with a 3D preview. Use it whenever someone animates an R6 rig (Torso, Left Arm, Right Leg...): a punch, kick, dash, combo, idle, walk, run, emote, spell, cast, magic, mage, summon, staff, bow, dance; an animation that looks stiff, robotic, plastic, cramped or weak; weight, timing, easing; requests for IK or FK on R6; turning an R15 animation into R6; KeyframeSequences, AnimSaves, Moon Animator or Eclipse Animator work; or a battlegrounds-style combat system. Use it even when "R6" is not said but the rig has six parts.'
 ---
 
 # Ultimate R6 Animation Design
@@ -11,8 +11,11 @@ from the torso committing to the move, and from limbs **sliding a short way out 
 works in three rules:
 
 1. **Reference first.** Before posing anything, look for the same move already made for R6, measure
-   it, and imitate it. Only if no R6 version exists, follow the user's chosen house style: their own R6 movement
-   system. (`references/reference-first.md`)
+   it, and imitate it (`references/reference-first.md`). A move the kit has never made is a
+   research job: go down the whole source ladder in `references/new-moves.md` (R6 packs, Roblox
+   emotes, human mocap through `lune run mocap`, video, the user acting it out) and never start
+   from the kit's punches and walks. The house grammar of the user's R6 movement system decides
+   style, not content.
 2. **No IK, no FK/IK system.** A clip is exactly the poses you key: named angles plus `pos`
    slides. The first version of this skill used IK aims and planted-leg solving; the user found the
    result cramped and timid, so it was removed. (`references/posing.md`)
@@ -33,8 +36,9 @@ works in three rules:
 | `scripts/R6Locomotion.luau` | client driver: wall run, landings, climb, jump/fall, idle/walk/run/Stance from the real state and speed | client |
 | `scripts/R6WallRun.luau` | a small client wall run that drives the WallRunLeft/Right clips (tune the gameplay yourself) | client |
 | `scripts/R15ToR6.luau` | R15 → R6 through body points, with limb slides (offline or sampled in Studio) | everywhere |
+| `scripts/MocapToR6.luau` | human motion capture (body points from Blender) → R6, legs riding into the torso for knees | everywhere |
 | `scripts/R6Combat.luau` | client combat animator: string, buffer, cancels, dash burst, block, hit-stop | client (+ server query) |
-| `tools/` | Lune: `study` (measure a file), `check` (192 tests), `build` (pack + preview), `convert` (R15 → R6), `studio_place` | terminal |
+| `tools/` | Lune: `study` (measure a file), `mocap` (FBX/BVH/GLB → R6 reference, via Blender and `mocap_points.py`), `check` (201 tests), `build` (pack + preview), `convert` (R15 → R6), `studio_place` | terminal |
 
 All modules are ModuleScripts that `require(script.Parent.X)` each other. Put them in one folder,
 for example `ReplicatedStorage.R6Animation`. Run the tools from `tools/` (`lune` and `selene` come
@@ -43,6 +47,10 @@ from `rokit.toml` there).
 References, read the one that matches the job:
 - `references/reference-first.md`: where to find R6 references, loading them safely, `study`,
   how to imitate, the house grammar, measured tables. **Read for every new animation.**
+- `references/new-moves.md`: researching a move the kit has never made: breaking it down, search
+  vocabulary, the six-tier source ladder, the reference sheet, archetype cards. **Read for any move
+  that is not a punch, kick, dash, block, reaction, idle, walk, run, climb, jump, fall, landing or
+  wall run.**
 - `references/posing.md`: the rig, named angles, part entries, slides and budgets, legs on the
   pelvis, why there is no IK. **Read before keying.**
 - `references/weight-and-feel.md`: timing, easing per segment, overlap, holds, the anti-plastic
@@ -53,11 +61,13 @@ References, read the one that matches the job:
 
 ## Workflow: from a request to a clip that hits
 
-1. **Find the R6 reference** (`reference-first.md` §1-2). In order: the user's files
+1. **Find the reference.** New to the kit? `new-moves.md`: brief, vocabulary, the whole ladder,
+   two references, a reference sheet. Otherwise (`reference-first.md` §1-2): In order: the user's files
    (`~/Downloads/*.rbxm`, rigs' `AnimSaves` in the open place), the Creator Store through Studio
    MCP (`search_assets` "R6 <move> animation", load with `game:GetObjects`, **destroy every script
    before parenting**, `export_rbxm` to the scratchpad), R15 packs converted, then video. No R6
-   version anywhere: use the house grammar (§5) and say so.
+   version anywhere: go to `new-moves.md` tiers 2-5 (emotes, mocap, video, the user acting it
+   out) before falling back to the house grammar, and say which you used.
 2. **Measure it.** `lune run study <file> [clip]`: length, chamber and hit frames, release and hold,
    torso twist/lean/drop/lunge at contact, how far each limb leaves its socket, where the fist or
    foot ends. `--keys=0,6,12` also prints the reference's poses at those frames as R6Clip key
@@ -199,7 +209,7 @@ R6Combat.movesFrom(CombatMoves), onHit = ... })` gives `attack()`, `dash(dir)`, 
 
 ## Before you say it is done
 
-- `lune run check` from `tools/` (192 tests: math, slides, legs on the pelvis, the crossed-legs
+- `lune run check` from `tools/` (201 tests: mocap → R6, math, slides, legs on the pelvis, the crossed-legs
   case, every move's audit and commitment, export round trip, R15 → R6 accuracy, study).
 - `selene --config selene.toml ../scripts` from `tools/`.
 - The audit is clean on every new clip, `study` agrees with the reference, and you looked at it
@@ -215,6 +225,7 @@ code and a check that fails if it comes back. Do not remove the checks to make a
 
 | Mistake | Fix | Caught by |
 |---|---|---|
+| Asked for a mage animation, the skill reposed its own punches and walks: no reference was searched for a move the kit never had | `references/new-moves.md`: brief, search vocabulary, the six-tier ladder, a reference sheet in every hand-over; `lune run mocap` turns free human mocap into R6 references | the eval "mage-fireball-new-move" (a reference sheet with real sources, no kit poses) |
 | IK aims and planted-leg solving made every move cramped and timid | no IK; angles plus short slides | audit `commit` (fist 2.4+ out, torso 25+ turned) |
 | A 60-degree torso twist swapped the hips and crossed the legs into an X | legs on a pelvis (`space = "root"`, `hips` 0.35); R15ToR6 hangs legs from the R15 pelvis | audit `legs` (centre lines, X from side/front); tests |
 | An arm flung back (raise -55) came home to the guard (150) over the head: rotation blends take the shortest way, and 193 degrees is "shorter" backwards | R6Clip interpolates the named angles, not the rotations | audit `overhead` and `export`; test on all four dashes |
