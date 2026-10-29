@@ -2,9 +2,11 @@
 
 Every new animation starts by looking for the same move already made **for R6**. A real R6 clip
 already solved the problems a six-block body has (no elbows, no knees, a torso that is the spine),
-so its timing, angles and slides are worth more than any rule of thumb. Only when no R6 version
-exists do you fall back to the movement grammar of the user's R6 movement system
-(section 5), which the user picked as the house style.
+so its timing, angles and slides are worth more than any rule of thumb. When no R6 version exists
+you fall back to the movement grammar of the user's R6 movement system (section 5), which the
+user picked as the house style. Either way, **the body always follows the house** (section 5,
+"The house body"): a reference gives the move and its timing, the house decides how the torso
+drops and leans, which leg takes the depth, where the feet stand and where the face looks.
 
 ## Contents
 1. Where to look, in order
@@ -143,6 +145,22 @@ These are the house rules when nothing closer exists:
 
 For a combat move with no reference, combine this grammar with the measured punch numbers in
 section 6: commit the body like the punch packs, keep the slides inside the movement system's sizes.
+
+### The house body (every clip, referenced or not)
+
+Measured with `lune run house <movement-system.rbxm>`; the rules are in `R6Clip.HOUSE` and the
+audit checks them. How to pose them: `posing.md` §4, "Lowering the body the house way".
+
+| House clip | drop | lean | face | bury front / back leg | feet out |
+|---|---|---|---|---|---|
+| idle | 0.03-0.06 | 0-1 | -4..-2 | 0.03 / 0.03 | 0.58-0.66 |
+| walk | 0.17-0.33 | 8-11 | -10..-7 | passes 0.48 / -0.38 | 0.52-0.57 |
+| run | 0.29-0.46 | 18-24 | -13..-11 | passes 0.95 / -0.20 | 0.50 |
+| crouch (held) | 0.74 | 22 | -10 | 0.96 / 0.11 | 0.73-0.82 |
+| normal land | 0.9 | 15-33 | -47..-42 | 1.11 / 0.44 | 0.63-0.73 |
+
+A reference whose body disagrees (the Iron Bastion prototype's R15 stance: feet 1.05 out, both
+legs 0.5 in, lean 5 for a 0.5 drop) keeps its arms and timing and takes the house's body.
 
 ### Worked example: the kit's Idle, Walk and Run
 

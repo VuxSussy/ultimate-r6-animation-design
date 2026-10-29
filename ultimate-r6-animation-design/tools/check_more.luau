@@ -10,7 +10,7 @@ return function(Env, check)
 	local R15ToR6 = Env.load("R15ToR6")
 
 	-- easing: every curve starts at 0 and ends at 1
-	for _, spec in { "linear", "snap", "settle", "recover", "smooth", "cubicInOut", "backOut", "elasticOut", "bounceOut", "expoIn", { bezier = { 0.42, 0, 0.58, 1 } }, { settle = 0.2 }, { back = 2 } } do
+	for _, spec in { "linear", "snap", "settle", "recover", "smooth", "heavyIn", "heavyOut", "heavy", "cubicInOut", "backOut", "elasticOut", "bounceOut", "expoIn", { bezier = { 0.42, 0, 0.58, 1 } }, { settle = 0.2 }, { back = 2 } } do
 		local f = Ease.get(spec)
 		local name = type(spec) == "table" and "table" or spec
 		check("ease ends " .. name, math.abs(f(0)) < 1e-6 and math.abs(f(1) - 1) < 1e-6, string.format("%g %g", f(0), f(1)))
@@ -523,5 +523,157 @@ return function(Env, check)
 			local audit = R6Clip.audit(baked, { airborne = true, legsMayCross = true })
 			check("r15->r6 " .. label .. " audits clean", audit.ok, table.concat(audit.notes, "; "))
 		end
+	end
+
+	-- the house grammar's body (R6Clip.HOUSE): a held pose lowered on both legs, feet splayed out
+	-- like a sumo, a squat with an upright chest, a face looking at the floor are each flagged; the
+	-- house's way (split feet, front leg deep, back leg long, the head up against the lean) passes
+	do
+		local leg = CombatMoves.leg
+		local function held(pose)
+			local c = R6Clip.new("Held", { loop = true })
+			c:key(0, pose, "sineInOut")
+			c:key(30, pose, "sineInOut")
+			return R6Clip.audit(c:bake(), {})
+		end
+		local function flags(audit, prefix, words)
+			for _, n in audit.notes do
+				if string.find(n, "^" .. prefix) and string.find(n, words, 1, true) then
+					return true
+				end
+			end
+			return false
+		end
+		local stumps = held({
+			Torso = { lean = 22, pos = { up = -0.75 } },
+			Head = { nod = -14 },
+			LeftLeg = leg({ raise = 8, spread = 4 }),
+			RightLeg = leg({ raise = -8, spread = 4 }),
+		})
+		check("house: both legs sunk into the torso are flagged", flags(stumps, "bury", "both legs"), table.concat(stumps.notes, "; "))
+		local sumo = held({
+			Torso = { lean = 12, pos = { up = -0.4 } },
+			Head = { nod = -4 },
+			LeftLeg = leg({ raise = 14, spread = 22 }),
+			RightLeg = leg({ raise = -38, spread = 22 }),
+		})
+		check("house: feet splayed past the hips are flagged", flags(sumo, "house", "sole is"), table.concat(sumo.notes, "; "))
+		local upright = held({
+			Torso = { lean = 3, pos = { up = -0.5 } },
+			Head = { nod = 5 },
+			LeftLeg = leg({ raise = 14, spread = 3 }),
+			RightLeg = leg({ raise = -42, spread = 3 }),
+		})
+		check("house: a squat with an upright chest is flagged", flags(upright, "house", "leans only"), table.concat(upright.notes, "; "))
+		local floor = held({
+			Torso = { lean = 16, pos = { up = -0.45 } },
+			Head = { nod = 18 },
+			LeftLeg = leg({ raise = 14, spread = 3 }),
+			RightLeg = leg({ raise = -40, spread = 3 }),
+		})
+		check("house: a face looking at the floor is flagged", flags(floor, "house", "face looks"), table.concat(floor.notes, "; "))
+		local crouch = held({
+			Torso = { lean = 20, twist = -8.65, pos = { up = -0.6 } },
+			Head = { nod = -10, turn = 8.65 },
+			LeftLeg = leg({ raise = 12, spread = 3, twist = -6 }),
+			RightLeg = leg({ raise = -46, spread = 4, twist = -8 }),
+		})
+		check("house: the house crouch passes", crouch.ok, table.concat(crouch.notes, "; "))
+		-- in the air the house tucks both legs, and its landings fold for a moment (meta.impact)
+		local Locomotion = Env.load("Locomotion")
+		for _, name in { "Jump", "Land", "LandLong" } do
+			local c = Locomotion[name]()
+			check("house: its own " .. name .. " passes", R6Clip.audit(c:bake(), c.meta).ok)
+		end
+	end
+
+	-- curve = "auto": values run on a monotone curve THROUGH the keys (no stop at a passing key, no
+	-- overshoot, still flat at a real extreme), and every kit move still audits clean with it
+	do
+		local c = R6Clip.new("CurveTest", { curve = "auto" })
+		c:key(0, { RightArm = { raise = 0 } }, "sineInOut")
+		c:key(10, { RightArm = { raise = 60 } }, "sineInOut") -- a passing key
+		c:key(20, { RightArm = { raise = 90 } }, "sineInOut") -- the extreme
+		c:key(30, { RightArm = { raise = 30 } })
+		local function value(p, a, b, n, u)
+			return R6Clip.curveEntry(p, a, b, n, u).raise
+		end
+		local k = {}
+		for i, f in { 0, 10, 20, 30 } do
+			k[i] = { frame = f, entry = c.keys[i].parts["Right Arm"] }
+		end
+		local before = value(k[1], k[2], k[3], k[4], 0) - value(nil, k[1], k[2], k[3], 0.95)
+		local after = value(k[1], k[2], k[3], k[4], 0.05) - value(k[1], k[2], k[3], k[4], 0)
+		check("auto curve keeps its speed through a passing key", before > 0 and after > 0 and math.abs(before - after) < 0.25 * math.max(before, after), string.format("%.3f %.3f", before, after))
+		local peak = 0
+		for i = 0, 20 do
+			peak = math.max(peak, value(k[1], k[2], k[3], k[4], i / 20), value(k[2], k[3], k[4], nil, i / 20))
+		end
+		check("auto curve never overshoots a key", peak <= 90 + 1e-6, peak)
+		local flat = value(k[2], k[3], k[4], nil, 0.02) - 90
+		check("auto curve is flat at an extreme", math.abs(flat) < 0.5, flat)
+		local hits = 0
+		for _, name in CombatMoves.LIST do
+			R6Clip.curve = "auto"
+			local m = CombatMoves[name]()
+			R6Clip.curve = nil
+			local audit = R6Clip.audit(m:bake(), m.meta)
+			hits += audit.ok and 1 or 0
+		end
+		check("every kit move audits clean with curve = auto", hits == #CombatMoves.LIST, hits)
+	end
+
+	-- weight: the wind-up and the recovery stretch, the strike keeps its keyed speed
+	do
+		local plain = CombatMoves.Jab()
+		local heavy = CombatMoves.Jab()
+		heavy.weight = "medium"
+		local bp, bh = plain:bake(), heavy:bake()
+		local strikeP = plain.meta.strike[2] - plain.meta.strike[1]
+		local strikeH = heavy.meta.strike[2] - heavy.meta.strike[1]
+		check("weight stretches the wind-up and recovery, not the strike", strikeP == strikeH and heavy.meta.strike[1] > plain.meta.strike[1] and #bh.frames > #bp.frames, string.format("strike %d/%d, wind-up %d/%d, length %d/%d", strikeP, strikeH, plain.meta.strike[1], heavy.meta.strike[1], #bp.frames, #bh.frames))
+		local hitMarker
+		for _, m in bh.markers do
+			if m.name == "Hit" then
+				hitMarker = m.frame
+			end
+		end
+		check("weight moves the Hit marker with the keys", hitMarker == heavy.meta.hit, tostring(hitMarker) .. " vs " .. tostring(heavy.meta.hit))
+		check("a weighted move still audits clean", R6Clip.audit(bh, heavy.meta).ok, table.concat(R6Clip.audit(bh, heavy.meta).notes, "; "))
+		local loop = Env.load("Locomotion").Walk()
+		loop.weight = "heavy"
+		check("weight leaves loops alone", #loop:bake().frames == #Env.load("Locomotion").Walk():bake().frames)
+	end
+
+	-- tension: the curve slows into a passing key instead of gliding through it
+	do
+		local function speedAtKey(tension)
+			local before = R6Clip.curveValue(0, 60, 90, nil, 0, 10, 20, nil, 0.0, tension) - R6Clip.curveValue(nil, 0, 60, 90, nil, 0, 10, 20, 0.95, tension)
+			return before
+		end
+		local glide, settle = speedAtKey(0), speedAtKey(0.6)
+		check("tension slows the curve into a key", settle < glide * 0.6 and settle > 0, string.format("%.3f vs %.3f", settle, glide))
+	end
+
+	-- swing: a weapon is swung, not punched
+	do
+		local tip = Vector3.new(0, -1, -4)
+		local punch = R6Clip.new("PunchCut")
+		local guard = { RightArm = { raise = 40, swing = 20 } }
+		punch:key(0, guard)
+		punch:key(6, { RightArm = { raise = 60, swing = 10, pos = { forward = -0.2 } } })
+		punch:key(10, { RightArm = { raise = 70, swing = 0, pos = { forward = 0.6 } } })
+		punch:key(20, { RightArm = { raise = 70, swing = 0, pos = { forward = 0.6 } } })
+		punch:key(30, guard)
+		punch:marker(10, "Hit")
+		local meta = { limb = "RightArm", tip = tip, strike = { 6, 10 }, hit = 10, cancel = 20, noCommit = true, arc = false, cut = "overhead" }
+		local audit = R6Clip.audit(punch:bake(), meta)
+		local arcNote, overheadNote = false, false
+		for _, n in audit.notes do
+			arcNote = arcNote or string.find(n, "travels only") ~= nil
+			overheadNote = overheadNote or string.find(n, "overhead cut starts") ~= nil
+		end
+		check("a punch-shaped cut fails the swing check", arcNote, table.concat(audit.notes, "; "))
+		check("an overhead cut that never raises the sword is flagged", overheadNote, table.concat(audit.notes, "; "))
 	end
 end

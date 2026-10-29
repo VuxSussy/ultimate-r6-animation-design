@@ -4,7 +4,7 @@
 --
 -- Ease.get(spec) -> function(t) for t in 0..1 (may leave 0..1 for overshoot curves).
 -- spec: "linear" | "constant" | "<style><In|Out|InOut>" (sine quad cubic quart quint expo circ back
---       elastic bounce) | "snap" | "settle" | { bezier = {x1, y1, x2, y2} }
+--       elastic bounce) | "snap" | "settle" | "heavyIn" | "heavyOut" | "heavy" | { bezier = {x1, y1, x2, y2} }
 --       | { back = overshoot, dir = "out" } | { settle = 0.15 } (overshoot share) | function(t)
 
 local Ease = {}
@@ -155,6 +155,13 @@ local NAMED = {
 	settle = Ease.settle(0.12),
 	recover = Ease.recover(0.08),
 	smooth = Ease.bezier(0.42, 0, 0.58, 1),
+	-- weight curves: uneven speed is what reads as mass
+	-- heavyIn (names are matched lowercase): slow to get going, then a hard surge (a heavy limb or weapon swung into a strike)
+	heavyin = Ease.bezier(0.65, 0, 0.85, 0.45),
+	-- heavyOut: arrives fast, then a long slow drift into the pose (a body coming to rest)
+	heavyout = Ease.bezier(0.1, 0.6, 0.25, 1),
+	-- heavy: inertia at the start, a firm brake at the end (a big body move between poses)
+	heavy = Ease.bezier(0.65, 0, 0.25, 1),
 }
 
 function Ease.get(spec)

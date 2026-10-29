@@ -242,3 +242,20 @@ step by step (it lives outside the skill, in the project's `sword/` folder).
 5. **What the first draft got wrong:** `snap` out of the hang put the blade's peak (309 studs/s)
    right after the wind-up; the contact key had already swept past the centre (tip x -3.8). Probe
    the blade tip of each key before baking (fist + 4 studs along the arm's front).
+
+### Swinging, not punching (the showcase katana combo, 2026-10-29)
+
+The first katana combo copied the punch grammar: the arm pushed out along a line to contact and
+pulled back. The user's note: a weapon swing needs width, the arm out at full stretch, and a cut
+from above has to lift the sword all the way over the head before chopping down. The rebuilt cuts:
+
+| Cut | Wind-up (meta.strike[1]) | The arc | Follow-through | Travelled arc, arm out |
+|---|---|---|---|---|
+| Katana1 diagonal | sword behind the right shoulder (raise 182-186, spread 42-44, body turned -55, arched) | out wide right and high (raise 138, spread 62, shoulder slid 0.6 right), round to the front (raise 92, spread 50) | down across the body to behind the left hip (raise -12, swing 78) | 336 degrees, 0.67 |
+| Katana2 backhand | wrapped round behind the left shoulder (swing 110-116, body turned +62) | flat across the front at chest height, arm slid 0.85 forward | flung out straight to the right (spread 88-94, blade pointing behind) | 269, 0.80 |
+| Katana3 rising | low behind the left hip (raise -30, body dropped 0.66) | up through the front (raise 18 → 58 → 108, spread to 34) | over the right shoulder (raise 176-182) | 289, 0.78 |
+| Katana4 overhead | both hands, sword over the head with the blade hanging behind (raise 150-154, back arched -16): tip 1.5+ above the head | straight down the centre line | on through to the floor (raise -8), held | 200, 0.70 |
+
+Keys sit every 2 frames along the arc (otherwise the tip cuts the chord between two keys) and the
+cut leaves the hang with `heavyIn`. The audit's `swing` check (travelled arc, average arm slide,
+overhead wind-up) fails the old punch-shaped versions.

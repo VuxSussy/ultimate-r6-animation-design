@@ -36,7 +36,7 @@ CombatMoves.leg = leg
 -- shoulders a little (the hands-up silhouette R6 cannot make with rotation alone).
 CombatMoves.Guard = {
 	Torso = { twist = -25, lean = 10, pos = { up = -0.35 } },
-	Head = { nod = 6, turn = 12 },
+	Head = { nod = -2, turn = 12 }, -- the head counters the lean: the face looks ~8 down (house: 2-13)
 	LeftArm = { raise = 138, swing = 32, pos = { forward = 0.2 } },
 	RightArm = { raise = 150, swing = 62, pos = { forward = 0.15, right = -0.1 } },
 	LeftLeg = leg({ raise = 14, spread = 4, twist = -10 }),
@@ -159,13 +159,16 @@ end
 function CombatMoves.Uppercut()
 	local c = clip("Uppercut")
 	c:key(0, G, "sineInOut")
+	-- the dip the house way: the front leg takes the depth, the back leg stretches long behind
 	local chamber = merge(G, {
-		Torso = { twist = -35, lean = 28, pos = { up = -1.0, forward = 0.1 } },
+		Torso = { twist = -35, lean = 28, pos = { up = -0.9, forward = 0.1 } },
 		RightArm = { raise = 20, spread = 10, pos = { up = -0.25 } },
 		Head = { nod = 14, turn = 14 },
+		LeftLeg = leg({ raise = 30, spread = 4, twist = -10 }),
+		RightLeg = leg({ raise = -52, spread = 6, twist = -25 }),
 	})
 	c:key(6, chamber, "sineInOut")
-	c:key(9, merge(chamber, { Torso = { twist = -38, lean = 30, pos = { up = -1.05 } } }), "snap")
+	c:key(9, merge(chamber, { Torso = { twist = -38, lean = 30, pos = { up = -0.95 } } }), "snap")
 	local contact = merge(G, {
 		Torso = { twist = 40, lean = -8, pos = { up = -0.05, forward = 0.45 } },
 		Head = { nod = -6, turn = -14 },
@@ -357,9 +360,13 @@ function CombatMoves.Block()
 	local c = clip("Block", { loop = true, priority = "Action2" })
 	local hold = merge(G, {
 		Torso = { twist = -10, lean = 16, pos = { up = -0.45 } },
-		Head = { nod = 18, turn = 6 },
+		Head = { nod = -6, turn = 6 }, -- eyes over the forearms, not buried behind them
 		LeftArm = { raise = 160, swing = 70, pos = { forward = 0.35, up = 0.1 } },
 		RightArm = { raise = 165, swing = 75, pos = { forward = 0.3, up = 0.15 } },
+		-- the house lowers the body on one leg: the front leg takes the depth, the back leg
+		-- stretches behind at acos(1 - drop/2) and stays long
+		LeftLeg = leg({ raise = 16, spread = 4, twist = -10 }),
+		RightLeg = leg({ raise = -40, spread = 6, twist = -15 }),
 	})
 	c:key(0, hold, "sineInOut")
 	c:key(30, merge(hold, { Torso = { lean = 17.5, pos = { up = -0.5 } } }), "sineInOut")
@@ -399,7 +406,13 @@ function CombatMoves.HitHeavy()
 	c:key(0, struck, "quadOut")
 	c:key(6, merge(struck, { Torso = { twist = 14, lean = -34, pos = { up = -0.55, forward = -0.9 } }, Head = { nod = -40 } }), "quadInOut")
 	-- stumble: catch the weight by pitching forward past guard, then settle
-	c:key(16, merge(G, { Torso = { twist = -12, lean = 26, pos = { up = -0.65, forward = 0.15 } }, Head = { nod = 20 } }), { recover = 0.12 })
+	c:key(16, merge(G, {
+		Torso = { twist = -12, lean = 26, pos = { up = -0.65, forward = 0.15 } },
+		Head = { nod = 20 },
+		-- the weight caught on the front leg, the back leg stretched long behind (the house's crouch)
+		LeftLeg = { raise = 18 },
+		RightLeg = { raise = -48 },
+	}), { recover = 0.12 })
 	c:key(40, G)
 	c:marker(28, "Cancel")
 	c:lead("Head", 2)
@@ -418,7 +431,7 @@ function CombatMoves.Stance()
 		Torso = { lean = 11.5, pos = { up = -0.4 } },
 		LeftArm = { raise = 134, pos = { forward = 0.27 } },
 		RightArm = { raise = 146, pos = { forward = 0.2 } },
-		Head = { nod = 7.5 },
+		Head = { nod = -3.5 },
 	}), "sineInOut")
 	c:key(72, G)
 	c:lead("Head", -4)

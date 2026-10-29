@@ -1047,16 +1047,17 @@ local DEEP = { LeftLeg = 1.7, RightLeg = 1.7 }
 
 -- Landings by fall height (the movement system's tiers): a quick dip, a fold with the arms thrown, a deep fold
 function Locomotion.Land()
-	return fromKeys("Land", LAND, { ground = true, meta = { stride = true } })
+	return fromKeys("Land", LAND, { ground = true, meta = { stride = true, impact = true } })
 end
 
 function Locomotion.LandShort()
-	-- The movement system's deep landings ride the legs 1.55-1.6 studs into the torso, past the usual 1.5
-	return fromKeys("LandShort", LAND_SHORT, { ground = true, budget = DEEP, meta = { stride = true } })
+	-- The movement system's deep landings ride the legs 1.55-1.6 studs into the torso, past the usual 1.5,
+	-- both legs at once for a moment: an impact (meta.impact), not a pose to copy
+	return fromKeys("LandShort", LAND_SHORT, { ground = true, budget = DEEP, meta = { stride = true, impact = true, bury = 1.6 } })
 end
 
 function Locomotion.LandLong()
-	return fromKeys("LandLong", LAND_LONG, { ground = true, budget = DEEP, meta = { stride = true } })
+	return fromKeys("LandLong", LAND_LONG, { ground = true, budget = DEEP, meta = { stride = true, impact = true, bury = 1.6 } })
 end
 
 function Locomotion.WallRunRight()
