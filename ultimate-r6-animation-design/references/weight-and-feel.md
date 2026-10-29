@@ -1,5 +1,7 @@
 # Weight and feel on R6
 
+> New body-clearance requirement: source poses may telescope thighs into the torso. Preserve the measurement as provenance, but do not copy that artifact. Run R6Quality.audit and follow body-clearance.md. Grounded soles and legal slide budgets do not prove that the visible thigh is clear.
+
 How to make six blocks feel heavy, snappy and smooth instead of plastic. Every number names its
 source (details in `sources.md`). Numbers are starting points to vary, not laws. Only the four
 non-negotiables in SKILL.md hold everywhere.
@@ -164,8 +166,8 @@ and Out swapped, so use `CubicV2` when writing sparse keys.
   bible). Stances turn the torso 70–90°.
 - **Rotating the torso drags the legs,** because the legs are children of the Torso (DevForum),
   and a big twist swaps the hips front-to-back and crosses the legs. Hang the legs from the pelvis
-  (`space = "root"`, `hips` 0.35) and ground them (`ground = true`): when the hips drop, the legs
-  ride up into the torso, the movement system's way.
+  (`space = "root"`, with suitable `hips` weighting) and ground support feet (`ground = true`).
+  Keep the visible thighs clear; use a shallower drop when a rigid leg cannot reproduce the source crouch.
 - **A foot passing under a lowered hip** (a step, a kick chamber) needs a passing key with the
   body risen. The leg has no knee to fold.
 - **No elbows.** To suggest a bent elbow or a cocked fist, move the whole arm to where the forearm
@@ -214,7 +216,7 @@ Procedural numbers from the same system's turning, falling and animate scripts:
 
 Its limb slides, measured with `lune run study` (the house grammar, `reference-first.md` §5):
 arms 0.15 idle → 0.4 walk → 0.7 run; legs ride 1.0-1.6 into the torso; the head never moves off
-the neck.
+the neck. These are measurements of the old source: visible thigh burial must be repaired, not imitated.
 
 Two runtime parts of that system are worth improving if a game copies them: its turning writes
 `C0` every frame with a frame-rate *dependent* lerp (write `Motor6D.Transform` in PreSimulation

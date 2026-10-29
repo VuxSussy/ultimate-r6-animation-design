@@ -1,0 +1,180 @@
+{
+  "cacheKey": "31a7613ac5921d7f02394ecc0019e4ae03aa510fe4aec96a97b07d793473b7b0",
+  "clips": [
+    {
+      "dense": true,
+      "easing": {
+        "Linear/In": 212
+      },
+      "frames": 44,
+      "keyframes": 42,
+      "length": 0.7333333492279053,
+      "loop": false,
+      "markers": [
+        {
+          "name": "Hit",
+          "t": 0.28333333134651184,
+          "value": ""
+        },
+        {
+          "name": "Cancel",
+          "t": 0.4833333194255829,
+          "value": ""
+        }
+      ],
+      "name": "SwordSlash",
+      "parts": {
+        "Head": {
+          "fromFirst": 24.50760495905056,
+          "gap": 0,
+          "gapAvg": 0,
+          "gapDir": [
+            0,
+            0,
+            0
+          ],
+          "gapFrame": 0,
+          "keyed": true,
+          "reach": 20.571267902629245,
+          "visible": 0,
+          "visibleAvg": 0
+        },
+        "Left Arm": {
+          "fromFirst": 83.82854409877812,
+          "gap": 0.25,
+          "gapAvg": 0.17722981671492258,
+          "gapDir": [
+            0,
+            0,
+            0.25
+          ],
+          "gapFrame": 19,
+          "keyed": true,
+          "reach": 83.18504465631455,
+          "visible": 0.28781047463417053,
+          "visibleAvg": 0.18061576713290478
+        },
+        "Left Leg": {
+          "fromFirst": 65.43885398497659,
+          "gap": 0.9770522117614746,
+          "gapAvg": 0.6307158397303687,
+          "gapDir": [
+            0.154266357421875,
+            0.6708526611328125,
+            -0.693389892578125
+          ],
+          "gapFrame": 23,
+          "keyed": true,
+          "reach": 57.936178049662715,
+          "visible": 0.7189534902572632,
+          "visibleAvg": 0.47583276563220556
+        },
+        "Right Arm": {
+          "fromFirst": 141.39259295189103,
+          "gap": 0.600006103515625,
+          "gapAvg": 0.31960520247618357,
+          "gapDir": [
+            0,
+            0,
+            -0.600006103515625
+          ],
+          "gapFrame": 17,
+          "keyed": true,
+          "reach": 168.6221802669007,
+          "visible": 0.8866771459579468,
+          "visibleAvg": 0.38466329988506104
+        },
+        "Right Leg": {
+          "fromFirst": 27.410759790291554,
+          "gap": 0.66303950548172,
+          "gapAvg": 0.5008394993013806,
+          "gapDir": [
+            -0.49029541015625,
+            -0.3009185791015625,
+            0.3296661376953125
+          ],
+          "gapFrame": 23,
+          "keyed": true,
+          "reach": 28.980537044593706,
+          "visible": 0.5036372542381287,
+          "visibleAvg": 0.3771651193499565
+        },
+        "Torso": {
+          "fromFirst": 84.21959974951804,
+          "gap": 0.6726791262626648,
+          "gapAvg": 0.4916487495104472,
+          "gapDir": [
+            0,
+            -0.5,
+            -0.4499969482421875
+          ],
+          "gapFrame": 21,
+          "keyed": true,
+          "reach": 64.64603294687818,
+          "visible": 0,
+          "visibleAvg": 0
+        }
+      },
+      "priority": "Action",
+      "strikes": [
+        {
+          "gapAtHit": [
+            0,
+            0,
+            -0.5333403944969177
+          ],
+          "hit": 16,
+          "hold": 3,
+          "limb": "Right Arm",
+          "load": 11,
+          "lunge": 0.3999938368797302,
+          "reach": 10.378707885742188,
+          "release": 5,
+          "share": 0.36363636363636365,
+          "tipForward": 5.745528221130371,
+          "torsoLean": 23.99914749548383,
+          "torsoTwist": 34.99992696737462
+        }
+      ],
+      "sweeps": {
+        "Left Arm": {
+          "cross": 12,
+          "fastAt": 15,
+          "fastest": 62.66965627670288
+        },
+        "Left Leg": {
+          "fastAt": 42,
+          "fastest": 12.371242940425873
+        },
+        "Right Arm": {
+          "cross": 17,
+          "fastAt": 14,
+          "fastest": 244.30174827575684
+        },
+        "Right Leg": {
+          "fastAt": 36,
+          "fastest": 11.86992734670639
+        }
+      },
+      "torso": {
+        "drop": 0.5,
+        "lean": 29.1207317680863,
+        "lunge": 0.4499969482421875
+      }
+    }
+  ],
+  "schema": 1,
+  "selected": [
+    "SwordSlash"
+  ],
+  "source": "SourceReference.rbxm",
+  "sourceHash": "7d14d0086d3f8e7df1f5f53db52322df3c1465f58e3a53bfc012bd3d12a1dd72",
+  "tip": {
+    "part": "Right Arm",
+    "point": [
+      0,
+      -1,
+      -4
+    ]
+  }
+}

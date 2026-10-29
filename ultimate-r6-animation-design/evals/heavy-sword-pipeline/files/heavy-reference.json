@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "archetype": "heavy",
+  "observedOn": "2026-10-29",
+  "method": "Direct browser playback, pause and UI frame stepping. Times are approximate player timestamps; no native source FPS, 3D angles, grip distances or exact impact measurements inferred.",
+  "sources": [
+    {
+      "url": "https://www.youtube.com/watch?v=t2h3Uxj7nNg",
+      "title": "Monster Hunter Wilds: Great Sword | Weapon Overview",
+      "creator": "Monster Hunter / Capcom",
+      "rig": "non-R6",
+      "status": "viewed",
+      "observations": [
+        {
+          "seconds": 11.0,
+          "note": "Hunter lowered with large blade raised diagonally before the cut."
+        },
+        {
+          "seconds": 11.5,
+          "note": "Blade carried very low to the side after the cut; trunk follows the action."
+        },
+        {
+          "seconds": 12.0,
+          "note": "Low follow-through and dust; monster obscures the exact contact."
+        },
+        {
+          "seconds": 13.0,
+          "note": "Hunter lifts/levers the large blade out of the low position to continue."
+        }
+      ]
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=BOofzxLNI_c",
+      "title": "Greatsword Moveset (Dark Souls 3)",
+      "creator": "Zombie Headz",
+      "rig": "non-R6",
+      "status": "viewed",
+      "observations": [
+        {
+          "seconds": 5.0,
+          "note": "Blade borne behind/right shoulder; free support hand."
+        },
+        {
+          "seconds": 5.5,
+          "note": "Chest rocks back and weapon loads behind the body."
+        },
+        {
+          "seconds": 5.633,
+          "note": "Blade raised behind/above shoulder, still preparing."
+        },
+        {
+          "seconds": 5.767,
+          "note": "Broad forward/downward release, torso and legs turn with the blade."
+        },
+        {
+          "seconds": 6.2,
+          "note": "Blade finishes low/outside, chest folds forward to follow and brace."
+        },
+        {
+          "seconds": 6.8,
+          "note": "Body rocks back and blade remains low/behind while counter-loading the next cut."
+        }
+      ]
+    }
+  ],
+  "r6Search": {
+    "local": "Existing SwordSlash is light/one-handed and cannot establish heavy timing. No closer local heavy clip found.",
+    "creatorStore": "Studio MCP unavailable in this session; no asset inserted.",
+    "listing": "https://robloxanimations.com/product/r6-weapon-animation-pack",
+    "preview": "https://www.youtube.com/watch?v=8DtuasKw2CU",
+    "result": "Public preview opened and sampled; sampled sections showed spear/dagger/gauntlet/katana/axe. Colossal sword movement not verified. Listing not used as observed heavy evidence. BuiltByBit R6 greatsword listing unavailable/maintenance."
+  },
+  "adaptation": {
+    "intent": "Original exaggerated full-effort R6 heavy sword combo. Observed heavy footage guides load, overswing, low finish and effortful recovery; previous measured R6 source supplies only rig mechanics.",
+    "grip": "Dominant hand attached. Support hand joins powered phases and releases into low recovery as a deliberate game-style choice. Footage does not establish mandatory release for all heavy swords.",
+    "timing": "At 60 FPS choose 26-28 frames Hit-to-overswing and 36-50 recovery frames, informed by DS3 visible release near 5.77, low finish near 6.2 and counter-load near 6.8. These are authored retimings, not a frame retarget.",
+    "r6Limits": "No knees/elbows, so modest stance depth with planted soles and thigh clearance; body effort expressed by torso turn/lean, load and weapon path."
+  }
+}

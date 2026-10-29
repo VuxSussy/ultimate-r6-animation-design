@@ -1,5 +1,7 @@
 # Posing R6 without IK: angles and slides
 
+> New body-clearance requirement: source poses may telescope thighs into the torso. Preserve the measurement as provenance, but do not copy that artifact. Run R6Quality.audit and follow body-clearance.md. Grounded soles and legal slide budgets do not prove that the visible thigh is clear.
+
 This skill has no IK and no FK/IK solver modes. A clip is the poses you key, nothing more. That
 was the user's call after the first version: IK targets kept every arm at a fixed reach on a fixed
 line and planted-leg solving pinned the hips, so moves came out tucked in and timid, with no force. Measured R6 references get their force the other way: big torso turns,
@@ -90,7 +92,7 @@ The slide is the R6 animator's substitute for an elbow, a knee, a shoulder blade
 | Part | Budget (`R6Rig.GAP`) | Where the number comes from | Typical use |
 |---|---|---|---|
 | arm | 1.0 stud | movement system: idle 0.15, walk 0.4, run 0.7, crawl 0.9; punch packs: 0.5-1.0 at contact | punch +0.6-0.9 forward; guard +0.15-0.2; rear hand −0.1 inward; recoil −0.25 back |
-| leg | 1.5 studs | movement system: walk 1.0, run 1.3, landings 1.3-1.6, crouch 1.1 | riding up into the torso as the body drops (`ground = true` does this); kick +0.6 out of the hip |
+| leg | 1.5 studs | movement system: walk 1.0, run 1.3, landings 1.3-1.6, crouch 1.1 | short slide/stance adjustment with a clear visible thigh; kick +0.6 out of the hip; body clearance still required |
 | head | 0.15 stud | The movement system never moves the head off the neck (0 in all 15 clips) | rotation only |
 
 - **"A short distance."** The user wants limbs out of the torso only a little. Community packs
@@ -117,15 +119,16 @@ kit's Cross. Three tools stop it:
    hung from each frame's torso, so a fast torso swing cannot drag the legs through each other.
    `hips = 0` keeps the legs exactly on the root; `hips = 1` is the old torso-space behaviour.
 2. **`ground = true`**: every frame the leg slides straight up or down (root space) until its sole
-   is on the floor. No angle changes. When the body sinks, the legs ride up into the torso:
-   the movement system's crouch, worked out for you. Between a grounded key and a free one (a kick chamber) it
-   fades in or out.
+   is on the floor. No angle changes. A deep body drop can push the thigh into the torso, so
+   grounding is not a knee-bending solution. Reduce the drop or change the keyed leg pose until
+   R6Quality.audit passes body clearance. Between a grounded key and a free one it fades in or out.
 3. **The audit's leg checks**:
    - the legs' centre lines must stay 0.75 stud apart (two one-stud blocks closer than that pass
      through each other)
    - seen from the side or the front, the hips must not be in one order and the feet in the other
      by more than 0.3 stud: that is the X
    - set `meta.legsMayCross = true` only for a deliberate cross-step
+   - R6Quality.audit also rejects visible thigh/torso intersection, regardless of cross-step flags
 
 How to pose legs for a strike: front leg `raise` 18-30 (steps forward), rear leg `raise` −22 to
 −30 with `pos.forward` −0.2 to −0.3 (it stays back and pushes), toes turned with `twist`, both

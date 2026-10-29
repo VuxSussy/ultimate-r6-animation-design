@@ -242,3 +242,5 @@ step by step (it lives outside the skill, in the project's `sword/` folder).
 5. **What the first draft got wrong:** `snap` out of the hang put the blade's peak (309 studs/s)
    right after the wind-up; the contact key had already swept past the centre (tip x -3.8). Probe
    the blade tip of each key before baking (fist + 4 studs along the arm's front).
+
+For an overhead weapon, see [pack-tools.md](pack-tools.md) for `meta.contactHeight`: an upright blade above the target is not yet a chest-height impact. Keep default behavior when no target band is declared.

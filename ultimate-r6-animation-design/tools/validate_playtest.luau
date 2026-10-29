@@ -1,0 +1,8 @@
+local E=require("./env")
+local luau=require("@lune/luau")
+luau.compile(E.fs.readFile("../../../../work/playtest-client.luau"))
+local place=E.roblox.deserializePlace(E.fs.readFile("../../../../outputs/SwordCombo4-Playtest.rbxl"))
+assert(#place:GetService("ReplicatedStorage").SwordComboPack:GetChildren()==5)
+assert(place:GetService("StarterPlayer").StarterCharacter.Humanoid.RigType==E.roblox.Enum.HumanoidRigType.R6)
+assert(place:GetService("StarterPlayer").StarterCharacterScripts.R6Test:IsA("LocalScript"))
+print("Playtest harness compiles; place round trip confirms R6 rig, LocalScript and 5 sequences. Engine execution not verified.")
