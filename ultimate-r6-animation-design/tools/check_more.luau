@@ -10,7 +10,7 @@ return function(Env, check)
 	local R15ToR6 = Env.load("R15ToR6")
 
 	-- easing: every curve starts at 0 and ends at 1
-	for _, spec in { "linear", "snap", "settle", "recover", "smooth", "cubicInOut", "backOut", "elasticOut", "bounceOut", "expoIn", { bezier = { 0.42, 0, 0.58, 1 } }, { settle = 0.2 }, { back = 2 } } do
+	for _, spec in { "linear", "snap", "settle", "recover", "smooth", "heavyIn", "heavyOut", "heavy", "cubicInOut", "backOut", "elasticOut", "bounceOut", "expoIn", { bezier = { 0.42, 0, 0.58, 1 } }, { settle = 0.2 }, { back = 2 } } do
 		local f = Ease.get(spec)
 		local name = type(spec) == "table" and "table" or spec
 		check("ease ends " .. name, math.abs(f(0)) < 1e-6 and math.abs(f(1) - 1) < 1e-6, string.format("%g %g", f(0), f(1)))
@@ -256,6 +256,146 @@ return function(Env, check)
 		check("study sweeps follow the weapon tip", withTip.sweeps["Left Arm"].fastest > plain.sweeps["Left Arm"].fastest)
 	end
 
+	-- mocap -> R6: a human T-pose stands the R6 straight with arms level; a crouch keeps the soles on
+	-- the floor by riding the legs into the torso; a fist pushed forward points the R6 arm forward;
+	-- the feet stay as far apart as the R6 hips (no crossing)
+	do
+		local MocapToR6 = Env.load("MocapToR6")
+		local function body(drop, rightFist)
+			local hipY = -1 - drop
+			local P = {
+				Pelvis = { 0, hipY + 0.1, 0 },
+				LeftHip = { -0.2, hipY, 0 }, RightHip = { 0.2, hipY, 0 },
+				LeftKnee = { -0.2, hipY - 1 + drop / 2, -drop }, RightKnee = { 0.2, hipY - 1 + drop / 2, -drop },
+				LeftAnkle = { -0.2, -2.87, 0 }, RightAnkle = { 0.2, -2.87, 0 },
+				LeftToe = { -0.2, -3, -0.27 }, RightToe = { 0.2, -3, -0.27 },
+				LeftShoulder = { -0.4, hipY + 1.1, 0 }, RightShoulder = { 0.4, hipY + 1.1, 0 },
+				LeftElbow = { -1.0, hipY + 1.1, 0 }, RightElbow = { 1.0, hipY + 1.1, 0 },
+				LeftFist = { -1.8, hipY + 1.1, 0 }, RightFist = rightFist or { 1.8, hipY + 1.1, 0 },
+				Neck = { 0, hipY + 1.3, 0 }, HeadTop = { 0, hipY + 1.85, 0 },
+			}
+			return P
+		end
+		local doc = { fps = 30, frames = {
+			{ t = 0, points = body(0) },
+			{ t = 0.5, points = body(0.6, { 0.4, -1.6 + 1.1, -1.4 }) },
+		} }
+		local baked = MocapToR6.convert(doc, { name = "MocapTest" })
+		local w0 = R6Rig.fk(baked.frames[1].transforms)
+		local w1 = R6Rig.fk(baked.frames[#baked.frames].transforms)
+		local tip = R6Rig.tip("Left Arm", w0["Left Arm"])
+		local pivot = R6Rig.pivot("Left Arm", w0.Torso)
+		check("mocap T-pose: arm level", math.abs(tip.Y - pivot.Y) < 0.05 and tip.X < pivot.X - 1.4, tip)
+		local worst = 0
+		for _, w in { w0, w1 } do
+			for _, leg in { "Left Leg", "Right Leg" } do
+				worst = math.max(worst, math.abs(R6Rig.tip(leg, w[leg]).Y + 3))
+			end
+		end
+		check("mocap soles stay on the floor through a crouch", worst < 0.03, worst)
+		local gap = R6Rig.gap("Left Leg", baked.frames[#baked.frames].transforms["Left Leg"]).Magnitude
+		check("mocap crouch rides the legs into the torso", gap > 0.4 and gap <= 1.5, gap)
+		local fist = R6Rig.tip("Right Arm", w1["Right Arm"]) - R6Rig.pivot("Right Arm", w1.Torso)
+		check("mocap fist pushed forward points the arm forward", fist.Unit.Z < -0.6, fist.Unit)
+		local a = R6Clip.audit(baked, {})
+		local crossed = false
+		for _, n in a.notes do
+			crossed = crossed or string.find(n, "^legs") ~= nil
+		end
+		check("mocap legs stay apart", not crossed and a.metrics.legGap > 0.75, a.metrics.legGap)
+	end
+
+	-- the Blender half of the mocap path, when Blender is installed: a CMU-named BVH (cm, Y up, facing
+	-- +Z) comes out scaled to a 2-stud leg, facing -Z, with every bone found
+	do
+		local fs, process = Env.fs, require("@lune/process")
+		local blender = "/Applications/Blender.app/Contents/MacOS/Blender"
+		if fs.isFile(blender) then
+			local out = "fixtures/.synthetic_points.json"
+			local r = process.exec(blender, { "-b", "--factory-startup", "--disable-autoexec", "--python", "mocap_points.py", "--", "fixtures/synthetic_cmu.bvh", out, "--fps=30" })
+			local ok = r.ok and fs.isFile(out)
+			check("blender reads the BVH fixture", ok, r.stderr)
+			if ok then
+				local doc = require("@lune/serde").decode("json", fs.readFile(out))
+				fs.removeFile(out)
+				local p = doc.frames[1].points
+				check("mocap points: hips 2 studs over the floor", math.abs(p.LeftHip[2] + 1) < 0.02, p.LeftHip[2])
+				check("mocap points: facing -Z, left is -X", p.LeftToe[3] < -0.1 and p.LeftHip[1] < 0, p.LeftToe[3])
+			end
+		else
+			print("[check] Blender not found: skipped the mocap_points test")
+		end
+	end
+
+	-- study --root-legs: torso-keyed legs (mocap, many packs) come back on the pelvis giving the same
+	-- foot placement, under a torso that leans 40 and turns 20, with the legs slid in their sockets
+	do
+		local R6Study = Env.load("R6Study")
+		local src = R6Clip.new("TorsoLegs")
+		local function pose(lean, twist)
+			return {
+				Torso = { lean = lean, twist = twist, pos = { up = -0.4 } },
+				LeftLeg = { raise = 30 + lean, spread = 4, pos = { forward = -0.2, up = 0.3 } },
+				RightLeg = { raise = -10 + lean, spread = 6, pos = { up = 0.2 } },
+			}
+		end
+		src:key(0, pose(0, 0))
+		src:key(20, pose(40, 20))
+		local seq = Sequence.read(R6Clip.toKeyframeSequence(src:bake()))
+		for _, hips in { 0.35, 0 } do
+			local keys = R6Study.keyPoses(seq, { 0, 20 }, 60, { rootLegs = true, hips = hips })
+			local again = R6Clip.new("Again")
+			for _, k in keys do
+				-- this synthetic pose is off the floor on purpose: judge the conversion, not grounding
+				k.pose["Left Leg"].ground, k.pose["Right Leg"].ground = nil, nil
+				again:key(k.frame, k.pose)
+			end
+			local worst = 0
+			for _, f in { 0, 20 } do
+				local wa = R6Rig.fk(Sequence.sample(seq, f / 60))
+				local wb = R6Rig.fk(again:sample(f))
+				for _, leg in { "Left Leg", "Right Leg" } do
+					worst = math.max(worst, (R6Rig.tip(leg, wa[leg]) - R6Rig.tip(leg, wb[leg])).Magnitude)
+				end
+			end
+			check("study --root-legs keeps the feet where they were (hips " .. hips .. ")", worst < 0.05, worst)
+		end
+	end
+
+	-- mocap: a planted foot stays planted while the body folds over it (no skating)
+	do
+		local MocapToR6 = Env.load("MocapToR6")
+		local function body(lean)
+			local up = Vector3.new(0, math.cos(math.rad(lean)), -math.sin(math.rad(lean)))
+			local hip = Vector3.new(0, -1, 0)
+			local function at(v)
+				return { v.X, v.Y, v.Z }
+			end
+			local chest = hip + up * 1.1
+			return {
+				Pelvis = at(hip + up * 0.1), LeftHip = at(hip + Vector3.new(-0.2, 0, 0)), RightHip = at(hip + Vector3.new(0.2, 0, 0)),
+				LeftAnkle = { -0.2, -2.87, -0.4 }, RightAnkle = { 0.2, -2.87, 0.3 }, LeftToe = { -0.2, -3, -0.67 }, RightToe = { 0.2, -3, 0.03 },
+				LeftShoulder = at(chest + Vector3.new(-0.4, 0, 0)), RightShoulder = at(chest + Vector3.new(0.4, 0, 0)),
+				LeftElbow = at(chest + Vector3.new(-0.4, -0.6, 0)), RightElbow = at(chest + Vector3.new(0.4, -0.6, 0)),
+				LeftFist = at(chest + Vector3.new(-0.4, -1.4, 0)), RightFist = at(chest + Vector3.new(0.4, -1.4, 0)),
+				Neck = at(chest + up * 0.2), HeadTop = at(chest + up * 0.75),
+			}
+		end
+		local baked = MocapToR6.convert({ fps = 30, frames = { { t = 0, points = body(0) }, { t = 0.5, points = body(45) } } }, {})
+		local w0, w1 = R6Rig.fk(baked.frames[1].transforms), R6Rig.fk(baked.frames[#baked.frames].transforms)
+		local skate = 0
+		for _, leg in { "Left Leg", "Right Leg" } do
+			skate = math.max(skate, (R6Rig.tip(leg, w1[leg]) - R6Rig.tip(leg, w0[leg])).Magnitude)
+		end
+		check("mocap feet stay planted while the body folds 45 degrees", skate < 0.05, skate)
+		local a = R6Clip.audit(baked, {})
+		local crossed = false
+		for _, n in a.notes do
+			crossed = crossed or string.find(n, "^legs") ~= nil
+		end
+		check("mocap fold over a staggered stance does not cross the legs", not crossed, table.concat(a.notes, "; "))
+	end
+
 	-- R6Study reads back what R6Clip keyed: the jab's shoulder slide and its strike frame
 	do
 		local R6Study = Env.load("R6Study")
@@ -270,6 +410,15 @@ return function(Env, check)
 			end
 		end
 		check("study finds the jab near its Hit marker", strike and math.abs(strike.hit - moves.Jab.meta.hit) <= 2, strike and strike.hit)
+	end
+
+	-- one part under two names in one pose ("RightLeg" from a merge, "Right Leg" added) fails loudly
+	-- instead of keeping whichever the table happens to list last
+	do
+		local ok = pcall(function()
+			R6Clip.new("Twice"):key(0, { RightLeg = { raise = 10 }, ["Right Leg"] = { raise = 20 } })
+		end)
+		check("a part keyed twice under two names is rejected", not ok)
 	end
 
 	-- removed IK keys fail loudly instead of silently doing nothing
@@ -374,5 +523,157 @@ return function(Env, check)
 			local audit = R6Clip.audit(baked, { airborne = true, legsMayCross = true })
 			check("r15->r6 " .. label .. " audits clean", audit.ok, table.concat(audit.notes, "; "))
 		end
+	end
+
+	-- the house grammar's body (R6Clip.HOUSE): a held pose lowered on both legs, feet splayed out
+	-- like a sumo, a squat with an upright chest, a face looking at the floor are each flagged; the
+	-- house's way (split feet, front leg deep, back leg long, the head up against the lean) passes
+	do
+		local leg = CombatMoves.leg
+		local function held(pose)
+			local c = R6Clip.new("Held", { loop = true })
+			c:key(0, pose, "sineInOut")
+			c:key(30, pose, "sineInOut")
+			return R6Clip.audit(c:bake(), {})
+		end
+		local function flags(audit, prefix, words)
+			for _, n in audit.notes do
+				if string.find(n, "^" .. prefix) and string.find(n, words, 1, true) then
+					return true
+				end
+			end
+			return false
+		end
+		local stumps = held({
+			Torso = { lean = 22, pos = { up = -0.75 } },
+			Head = { nod = -14 },
+			LeftLeg = leg({ raise = 8, spread = 4 }),
+			RightLeg = leg({ raise = -8, spread = 4 }),
+		})
+		check("house: both legs sunk into the torso are flagged", flags(stumps, "bury", "both legs"), table.concat(stumps.notes, "; "))
+		local sumo = held({
+			Torso = { lean = 12, pos = { up = -0.4 } },
+			Head = { nod = -4 },
+			LeftLeg = leg({ raise = 14, spread = 22 }),
+			RightLeg = leg({ raise = -38, spread = 22 }),
+		})
+		check("house: feet splayed past the hips are flagged", flags(sumo, "house", "sole is"), table.concat(sumo.notes, "; "))
+		local upright = held({
+			Torso = { lean = 3, pos = { up = -0.5 } },
+			Head = { nod = 5 },
+			LeftLeg = leg({ raise = 14, spread = 3 }),
+			RightLeg = leg({ raise = -42, spread = 3 }),
+		})
+		check("house: a squat with an upright chest is flagged", flags(upright, "house", "leans only"), table.concat(upright.notes, "; "))
+		local floor = held({
+			Torso = { lean = 16, pos = { up = -0.45 } },
+			Head = { nod = 18 },
+			LeftLeg = leg({ raise = 14, spread = 3 }),
+			RightLeg = leg({ raise = -40, spread = 3 }),
+		})
+		check("house: a face looking at the floor is flagged", flags(floor, "house", "face looks"), table.concat(floor.notes, "; "))
+		local crouch = held({
+			Torso = { lean = 20, twist = -8.65, pos = { up = -0.6 } },
+			Head = { nod = -10, turn = 8.65 },
+			LeftLeg = leg({ raise = 12, spread = 3, twist = -6 }),
+			RightLeg = leg({ raise = -46, spread = 4, twist = -8 }),
+		})
+		check("house: the house crouch passes", crouch.ok, table.concat(crouch.notes, "; "))
+		-- in the air the house tucks both legs, and its landings fold for a moment (meta.impact)
+		local Locomotion = Env.load("Locomotion")
+		for _, name in { "Jump", "Land", "LandLong" } do
+			local c = Locomotion[name]()
+			check("house: its own " .. name .. " passes", R6Clip.audit(c:bake(), c.meta).ok)
+		end
+	end
+
+	-- curve = "auto": values run on a monotone curve THROUGH the keys (no stop at a passing key, no
+	-- overshoot, still flat at a real extreme), and every kit move still audits clean with it
+	do
+		local c = R6Clip.new("CurveTest", { curve = "auto" })
+		c:key(0, { RightArm = { raise = 0 } }, "sineInOut")
+		c:key(10, { RightArm = { raise = 60 } }, "sineInOut") -- a passing key
+		c:key(20, { RightArm = { raise = 90 } }, "sineInOut") -- the extreme
+		c:key(30, { RightArm = { raise = 30 } })
+		local function value(p, a, b, n, u)
+			return R6Clip.curveEntry(p, a, b, n, u).raise
+		end
+		local k = {}
+		for i, f in { 0, 10, 20, 30 } do
+			k[i] = { frame = f, entry = c.keys[i].parts["Right Arm"] }
+		end
+		local before = value(k[1], k[2], k[3], k[4], 0) - value(nil, k[1], k[2], k[3], 0.95)
+		local after = value(k[1], k[2], k[3], k[4], 0.05) - value(k[1], k[2], k[3], k[4], 0)
+		check("auto curve keeps its speed through a passing key", before > 0 and after > 0 and math.abs(before - after) < 0.25 * math.max(before, after), string.format("%.3f %.3f", before, after))
+		local peak = 0
+		for i = 0, 20 do
+			peak = math.max(peak, value(k[1], k[2], k[3], k[4], i / 20), value(k[2], k[3], k[4], nil, i / 20))
+		end
+		check("auto curve never overshoots a key", peak <= 90 + 1e-6, peak)
+		local flat = value(k[2], k[3], k[4], nil, 0.02) - 90
+		check("auto curve is flat at an extreme", math.abs(flat) < 0.5, flat)
+		local hits = 0
+		for _, name in CombatMoves.LIST do
+			R6Clip.curve = "auto"
+			local m = CombatMoves[name]()
+			R6Clip.curve = nil
+			local audit = R6Clip.audit(m:bake(), m.meta)
+			hits += audit.ok and 1 or 0
+		end
+		check("every kit move audits clean with curve = auto", hits == #CombatMoves.LIST, hits)
+	end
+
+	-- weight: the wind-up and the recovery stretch, the strike keeps its keyed speed
+	do
+		local plain = CombatMoves.Jab()
+		local heavy = CombatMoves.Jab()
+		heavy.weight = "medium"
+		local bp, bh = plain:bake(), heavy:bake()
+		local strikeP = plain.meta.strike[2] - plain.meta.strike[1]
+		local strikeH = heavy.meta.strike[2] - heavy.meta.strike[1]
+		check("weight stretches the wind-up and recovery, not the strike", strikeP == strikeH and heavy.meta.strike[1] > plain.meta.strike[1] and #bh.frames > #bp.frames, string.format("strike %d/%d, wind-up %d/%d, length %d/%d", strikeP, strikeH, plain.meta.strike[1], heavy.meta.strike[1], #bp.frames, #bh.frames))
+		local hitMarker
+		for _, m in bh.markers do
+			if m.name == "Hit" then
+				hitMarker = m.frame
+			end
+		end
+		check("weight moves the Hit marker with the keys", hitMarker == heavy.meta.hit, tostring(hitMarker) .. " vs " .. tostring(heavy.meta.hit))
+		check("a weighted move still audits clean", R6Clip.audit(bh, heavy.meta).ok, table.concat(R6Clip.audit(bh, heavy.meta).notes, "; "))
+		local loop = Env.load("Locomotion").Walk()
+		loop.weight = "heavy"
+		check("weight leaves loops alone", #loop:bake().frames == #Env.load("Locomotion").Walk():bake().frames)
+	end
+
+	-- tension: the curve slows into a passing key instead of gliding through it
+	do
+		local function speedAtKey(tension)
+			local before = R6Clip.curveValue(0, 60, 90, nil, 0, 10, 20, nil, 0.0, tension) - R6Clip.curveValue(nil, 0, 60, 90, nil, 0, 10, 20, 0.95, tension)
+			return before
+		end
+		local glide, settle = speedAtKey(0), speedAtKey(0.6)
+		check("tension slows the curve into a key", settle < glide * 0.6 and settle > 0, string.format("%.3f vs %.3f", settle, glide))
+	end
+
+	-- swing: a weapon is swung, not punched
+	do
+		local tip = Vector3.new(0, -1, -4)
+		local punch = R6Clip.new("PunchCut")
+		local guard = { RightArm = { raise = 40, swing = 20 } }
+		punch:key(0, guard)
+		punch:key(6, { RightArm = { raise = 60, swing = 10, pos = { forward = -0.2 } } })
+		punch:key(10, { RightArm = { raise = 70, swing = 0, pos = { forward = 0.6 } } })
+		punch:key(20, { RightArm = { raise = 70, swing = 0, pos = { forward = 0.6 } } })
+		punch:key(30, guard)
+		punch:marker(10, "Hit")
+		local meta = { limb = "RightArm", tip = tip, strike = { 6, 10 }, hit = 10, cancel = 20, noCommit = true, arc = false, cut = "overhead" }
+		local audit = R6Clip.audit(punch:bake(), meta)
+		local arcNote, overheadNote = false, false
+		for _, n in audit.notes do
+			arcNote = arcNote or string.find(n, "travels only") ~= nil
+			overheadNote = overheadNote or string.find(n, "overhead cut starts") ~= nil
+		end
+		check("a punch-shaped cut fails the swing check", arcNote, table.concat(audit.notes, "; "))
+		check("an overhead cut that never raises the sword is flagged", overheadNote, table.concat(audit.notes, "; "))
 	end
 end

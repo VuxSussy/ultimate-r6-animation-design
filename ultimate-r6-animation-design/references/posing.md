@@ -11,7 +11,7 @@ and limbs **slid a short way out of their sockets** (see `reference-first.md`).
 1. The R6 rig in numbers
 2. Part entries
 3. Slides (`pos`) and their budgets
-4. Legs: pelvis space, grounding, never crossed
+4. Legs: pelvis space, grounding, never crossed; lowering the body the house way
 5. How Roblox applies a pose
 6. Why not IKControl, and what replaced each IK feature
 
@@ -105,7 +105,7 @@ The slide is the R6 animator's substitute for an elbow, a knee, a shoulder blade
   pops (the audit counts a 0.5-stud jump in one frame as a 20-degree pop).
 - **The audit** prints each part's largest gap (`metrics.gap`) and notes any part past its budget.
 
-## 4. Legs: pelvis space, grounding, never crossed
+## 4. Legs: pelvis space, grounding, never crossed; lowering the body the house way
 
 R6 legs hang from the Torso, and the Torso is chest and pelvis at once. Twist it 60 degrees for a
 cross and, by default, the hips swap front-to-back with it: the front leg ends up hanging from the
@@ -122,6 +122,11 @@ kit's Cross. Three tools stop it:
    is on the floor. No angle changes. A deep body drop can push the thigh into the torso, so
    grounding is not a knee-bending solution. Reduce the drop or change the keyed leg pose until
    R6Quality.audit passes body clearance. Between a grounded key and a free one it fades in or out.
+   is on the floor. No angle changes. When the body sinks, the legs ride up into the torso by
+   however much the drop needs: grounding does not choose WHICH leg should take it. Two legs
+   hanging straight down both ride the whole drop and read as stumps; pose them the house way
+   (below) so only the front one does. Between a grounded key and a free one (a kick chamber) it
+   fades in or out.
 3. **The audit's leg checks**:
    - the legs' centre lines must stay 0.75 stud apart (two one-stud blocks closer than that pass
      through each other)
@@ -130,9 +135,31 @@ kit's Cross. Three tools stop it:
    - set `meta.legsMayCross = true` only for a deliberate cross-step
    - R6Quality.audit also rejects visible thigh/torso intersection, regardless of cross-step flags
 
-How to pose legs for a strike: front leg `raise` 18-30 (steps forward), rear leg `raise` −22 to
-−30 with `pos.forward` −0.2 to −0.3 (it stays back and pushes), toes turned with `twist`, both
-`space = "root", ground = true`. `CombatMoves.leg{...}` sets both flags.
+### Lowering the body the house way
+
+The house grammar lowers a body on one leg. Its crouch (`lune run house <movement-system.rbxm>
+Crouch`): drop 0.74, chest leaning 22 and turned -8.65, the front foot 0.96 ahead with that leg 0.96
+into the torso, the back foot 1.29 behind with its leg only 0.11 in, feet 0.73-0.82 out from the
+centre, the face 10 degrees down. Its walk and run keep the same habits while moving.
+
+- **Feet under the hips**, 0.5-0.82 out from the centre: `spread` 0-5. Width comes from nothing;
+  depth and stability come from splitting the feet front and back.
+- **The back leg stays long.** A leg tilted θ from vertical reaches `2·cos θ` down, so with the hips
+  lowered by `drop` it touches the floor with no slide at `θ = acos(1 − drop/2)`: drop 0.35 → 34,
+  0.45 → 40, 0.6 → 46, 0.75 → 51 degrees (`raise` negative for the back leg).
+- **The front leg takes the depth**, `raise` 10-20, riding up into the torso by up to about 1.0.
+- **The chest leans into the drop**, about 30 degrees per stud (at least 20): drop 0.45 → lean 13,
+  0.6 → 18-20. A deep drop with an upright chest is a squat, not a stance.
+- **The head counters the lean** so the face looks 2-13 degrees down. With the kit's names,
+  `Head.nod ≈ 8 − Torso.lean`.
+
+The audit holds every clip to this (`R6Clip.HOUSE`): `bury` flags two legs sunk together in a
+held pose, and on grounded loops `house` flags splayed feet, an upright squat and a face looking at
+the floor.
+
+How to pose legs for a strike: front leg `raise` 18-30 (steps forward), rear leg `raise` −40 to
+−50 (stretched long behind; it pushes), feet under the hips (`spread` 0-5), toes turned with
+`twist`, both `space = "root", ground = true`. `CombatMoves.leg{...}` sets both flags.
 
 ## 5. How Roblox applies a pose
 

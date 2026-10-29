@@ -41,7 +41,12 @@ animation with force and commitment: not stiff like plastic, and not cramped or 
     about 1.4 s; jump again to kick off.
 11. **Weapons.** The audit and `study` can measure from a weapon's tip (`meta.tip`, `--tip`), tested
     by building a sword slash (`sword/`).
-12. **The skill records its own mistakes** ("Mistakes this skill has made" in SKILL.md): each with
+12. **Brand-new moves get researched, not remixed.** `references/new-moves.md` makes the AI break a
+    new move down, search with varied vocabulary through six tiers (R6 packs, Roblox emotes, free
+    human motion capture, video, the user acting it out, then only as a last resort first
+    principles) and hand over a reference sheet. `lune run mocap <file.fbx|.bvh|.glb>` turns human
+    mocap into an R6 reference clip through Blender (headless) and `MocapToR6`.
+13. **The skill records its own mistakes** ("Mistakes this skill has made" in SKILL.md): each with
     its fix and the automatic check that now stops it.
 
 ## In this folder
@@ -54,6 +59,7 @@ animation with force and commitment: not stiff like plastic, and not cramped or 
 | `output/eclipse/*.json` | the same 24 animations as JSON for Eclipse-Animator-MCP's `save_animation` tool |
 | `output/preview.html` | 3D preview: play/pause, 0.25x, frame by frame, limb trails, hit-stop |
 | `sword/` | the skill's test: a `SwordSlash` (+ `SwordGuard`) made by following the skill's workflow; `lune run build` writes `sword/out/` (rbxm, Eclipse JSON, preview) |
+| `mage/` | a two-hand fireball (`MageFireball`) built through the new-move protocol from real mocap (Kevin Iglesias' free spellcasting pack, converted with `lune run mocap`); `lune run build` writes `mage/out/` |
 | `studio/R6TestPlace.rbxl` | test place (Fists / Sword toggle at the bottom left, or key 1): modules, an R6 StarterCharacter, the harness, a wall to run on, a truss to climb, 10- and 30-stud ledges |
 
 References in `ultimate-r6-animation-design/references/`:
@@ -77,7 +83,19 @@ Print a reference clip's poses at chosen frames, as R6Clip key tables ready to p
 lune run study "<movement-system>.rbxm" "walk v3" --keys=0,6,12,18,24
 ```
 
-Run the 192 tests:
+Turn a human motion-capture file into an R6 reference clip (needs Blender; prints the fitted keys):
+
+```bash
+lune run mocap <file.fbx|.bvh|.glb> ../../output/mocap <ClipName> --fit=4
+```
+
+Compare your clip with its reference frame by frame (limb directions, fist and foot travel, torso):
+
+```bash
+lune run compare <reference.rbxm> <yours.rbxm> [refClip] [yourClip]
+```
+
+Run the 206 tests:
 
 ```bash
 lune run check
@@ -103,7 +121,7 @@ selene --config selene.toml ../scripts
 
 ## Tested and not tested
 
-- 192 tests pass, selene is clean, and all 24 clips pass the audit.
+- 206 tests pass, selene is clean, and all 24 clips pass the audit.
 - **Real playtests** (the Claude_R6_Preview place, an R6 character), with numbers read from the
   engine's own parts:
   - The 4-hit combo plays in order, even when pressed 0.12 s apart.

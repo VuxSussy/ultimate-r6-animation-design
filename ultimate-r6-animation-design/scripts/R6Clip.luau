@@ -28,6 +28,21 @@
 --                is yours. Between a grounded key and a free one it fades in or out.
 --   transform = CFrame  a raw joint Transform (pasted from another tool or a measured clip)
 --   ease       overrides the key's ease for this part
+-- Eases shape the segment LEAVING a key. "auto" (or opts.curve = "auto", which turns every
+-- sineInOut / linear / quadInOut / cubicInOut / recover / unset segment into one) runs the values on a
+-- curve THROUGH the keys: monotone cubic tangents (PCHIP), flat at a real extreme (a contact, a
+-- turnaround), never overshooting a key. Strike eases (snap, settle, quadIn, heavyIn...) stay.
+-- opts.tension (0..1, default R6Clip.tension or 0) is how much the body slows at every key on
+-- that curve: 0 glides through (smooth, fast-looking), 0.5 surges between keys and settles into
+-- each pose, 1 stops at every key. Uneven speed is what reads as weight; 0 reads as floaty.
+-- opts.weight ("light" | "medium" | "heavy" | { load, strike, hold, recover, move }; default
+-- R6Clip.weight) is timing contrast, applied once at bake: the wind-up (keys before meta.strike),
+-- the hold (meta.hit to meta.cancel) and the recovery (after meta.cancel) are stretched by their
+-- factor while the strike itself stays as fast as keyed. A one-shot without meta.strike stretches
+-- by `move`. Left alone: loops (a walk has to match its ground speed), clips airborne throughout
+-- (a jump) and landings (meta.impact) unless their own opts.weight asks: those are timed by the
+-- fall, not by the animator. Markers and the meta
+-- frames (hit, cancel, go, strike, active, windup, airborne, wings) move with the keys.
 -- Parts missing from a key are not keyed there: they move between the keys that name them.
 
 local R6Rig = require(script.Parent.R6Rig)
@@ -36,6 +51,21 @@ local Sequence = require(script.Parent.Sequence)
 
 local R6Clip = {}
 R6Clip.__index = R6Clip
+-- defaults for opts.curve, opts.tension and opts.weight: set them before building to apply to
+-- every clip built afterwards (a whole moveset)
+R6Clip.curve = nil
+R6Clip.tension = nil
+R6Clip.weight = nil
+
+-- Timing contrast: how much each phase of a one-shot is stretched (strike = the meta.strike
+-- window, which stays fast; hold = from the hit to the cancel; move = a clip without a strike).
+-- Measured against the kit's own timing: its wind-ups (4-9 f) and recoveries (12-20 f) read
+-- rushed next to the house movement system's 0.5-0.9 s actions.
+R6Clip.WEIGHTS = {
+	light = { load = 1.15, strike = 1, hold = 1.1, recover = 1.2, move = 1.1 },
+	medium = { load = 1.3, strike = 1, hold = 1, recover = 1.55, move = 1.3 },
+	heavy = { load = 1.7, strike = 1.15, hold = 1.2, recover = 1.9, move = 1.55 },
+}
 
 local ALIAS = {
 	RightArm = "Right Arm",
@@ -74,6 +104,10 @@ function R6Clip.new(name, opts)
 		fps = opts.fps or 60,
 		loop = opts.loop or false,
 		priority = opts.priority or "Action",
+		curve = opts.curve or R6Clip.curve,
+		tension = opts.tension or R6Clip.tension or 0,
+		weight = opts.weight or R6Clip.weight,
+		weightAsked = opts.weight ~= nil,
 		budget = budget,
 		meta = opts.meta or {},
 		keys = {},
@@ -146,6 +180,10 @@ function R6Clip:key(frame, pose, ease)
 	for name, entry in pose do
 		local part = partName(name)
 		checkEntry(part, entry)
+		if key.parts[part] then
+			-- "RightLeg" and "Right Leg" in one pose: which one wins would depend on table order
+			error(string.format("R6Clip: %s is keyed twice at frame %s (under two names)", part, tostring(frame)), 2)
+		end
 		key.parts[part] = entry
 	end
 	self._cache, self._rootCache = {}, {}
@@ -178,17 +216,37 @@ function R6Clip:length()
 	return last and last.frame or 0
 end
 
--- The two keys around `frame` that name `part`, and the eased alpha between them.
+-- Eases that opts.curve = "auto" turns into smooth curves through the keys: the in-betweens a
+-- blocking pass leaves, and the long recoveries home. The strike's own timing (snap, settle,
+-- quadIn, quadOut, back...) stays: settle's bounce is the weight of the contact.
+local CURVABLE = { sineInOut = true, linear = true, quadInOut = true, cubicInOut = true, recover = true, auto = true }
+
+function R6Clip:_ease(ease)
+	local key = type(ease) == "table" and ((ease.settle and "settle") or (ease.recover and "recover")) or ease
+	if ease == "auto" or (self.curve == "auto" and (ease == nil or CURVABLE[key])) then
+		return "auto"
+	end
+	return ease
+end
+
+-- The two keys around `frame` that name `part`, and the eased alpha between them. On an "auto"
+-- segment the alpha is plain time and the 4th value holds the keys on either side ({ prev, next }),
+-- for the curve through them (sample() does the curve).
 function R6Clip:_segment(part, frame)
 	local before, after
+	local list = {}
 	for _, k in self.keys do
 		local entry = k.parts[part]
 		if entry then
-			if k.frame <= frame then
-				before = { frame = k.frame, entry = entry, ease = entry.ease or k.ease }
-			elseif not after then
-				after = { frame = k.frame, entry = entry, ease = entry.ease or k.ease }
-			end
+			table.insert(list, { frame = k.frame, entry = entry, ease = self:_ease(entry.ease or k.ease) })
+		end
+	end
+	local at
+	for i, k in list do
+		if k.frame <= frame then
+			before, at = k, i
+		elseif not after then
+			after = k
 		end
 	end
 	if not before and not after then
@@ -200,8 +258,56 @@ function R6Clip:_segment(part, frame)
 		return before, before, 0
 	end
 	local u = (frame - before.frame) / (after.frame - before.frame)
-	return before, after, Ease.get(before.ease)(u)
+	if before.ease ~= "auto" then
+		return before, after, Ease.get(before.ease)(u)
+	end
+	local prev, nxt = list[at - 1], list[at + 2]
+	if self.loop and #list > 2 then
+		-- a loop's last key is its first: the neighbours wrap round the cycle
+		local len = self:length()
+		if not prev and list[#list].frame >= len - 1e-6 then
+			local k = list[#list - 1]
+			prev = { frame = k.frame - len, entry = k.entry }
+		end
+		if not nxt and list[1].frame <= 1e-6 then
+			local k = list[2]
+			nxt = { frame = k.frame + len, entry = k.entry }
+		end
+	end
+	return before, after, u, { prev = prev, next = nxt }
 end
+
+-- Monotone cubic (PCHIP) tangent at a key from the slopes on either side: zero at an extreme, never
+-- an overshoot, and the speed carried through a key the motion passes.
+local function tangent(d0, d1, h0, h1)
+	if not d0 or not d1 then
+		return 0 -- the clip's first or last key starts or ends at rest
+	end
+	if d0 * d1 <= 0 then
+		return 0
+	end
+	local w1, w2 = 2 * h1 + h0, h1 + 2 * h0
+	return (w1 + w2) / (w1 / d0 + w2 / d1)
+end
+
+local function hermite(va, vb, ma, mb, h, u)
+	local u2, u3 = u * u, u * u * u
+	return (2 * u3 - 3 * u2 + 1) * va + (u3 - 2 * u2 + u) * h * ma + (-2 * u3 + 3 * u2) * vb + (u3 - u2) * h * mb
+end
+
+-- one number on the curve through four keys' values (p and n may be missing). tension 0..1 slows
+-- the curve at both keys (the tangents shrink by it): uneven speed, the body settling into poses.
+local function curveValue(vp, va, vb, vn, fp, fa, fb, fn, u, tension)
+	local h = fb - fa
+	local d1 = (vb - va) / h
+	local d0 = vp and (va - vp) / (fa - fp) or nil
+	local d2 = vn and (vn - vb) / (fn - fb) or nil
+	local keep = 1 - math.clamp(tension or 0, 0, 1)
+	local ma = tangent(d0, d1, vp and (fa - fp) or 1, h) * keep
+	local mb = tangent(d1, d2, h, vn and (fn - fb) or 1) * keep
+	return hermite(va, vb, ma, mb, h, u)
+end
+R6Clip.curveValue = curveValue
 
 local blend = Sequence.blend
 
@@ -241,16 +347,40 @@ local function lerpEntry(a, b, alpha)
 end
 R6Clip.lerpEntry = lerpEntry
 
+-- lerpEntry's curved twin: every angle and slide on the "auto" curve through prev, a, b and next
+local function curveEntry(p, a, b, n, u, tension)
+	local out = {}
+	local pe, ne = p and p.entry, n and n.entry
+	for _, k in ANGLES do
+		if a.entry[k] or b.entry[k] then
+			out[k] = curveValue(pe and (pe[k] or 0), a.entry[k] or 0, b.entry[k] or 0, ne and (ne[k] or 0), p and p.frame, a.frame, b.frame, n and n.frame, u, tension)
+		end
+	end
+	if a.entry.pos or b.entry.pos then
+		local pa, pb = a.entry.pos or {}, b.entry.pos or {}
+		local pp, pn = pe and (pe.pos or {}), ne and (ne.pos or {})
+		out.pos = {}
+		for _, axis in { "forward", "up", "right" } do
+			out.pos[axis] = curveValue(pp and (pp[axis] or 0), pa[axis] or 0, pb[axis] or 0, pn and (pn[axis] or 0), p and p.frame, a.frame, b.frame, n and n.frame, u, tension)
+		end
+	end
+	return out
+end
+R6Clip.curveEntry = curveEntry
+
 local function named(entry)
 	return not entry.transform and entry.space ~= "root"
 end
 
 function R6Clip:_torso(frame)
-	local a, b, alpha = self:_segment("Torso", frame)
+	local a, b, alpha, curve = self:_segment("Torso", frame)
 	if not a then
 		return CFrame.identity
 	end
 	if a ~= b and named(a.entry) and named(b.entry) then
+		if curve and (not curve.prev or named(curve.prev.entry)) and (not curve.next or named(curve.next.entry)) then
+			return R6Rig.pose("Torso", curveEntry(curve.prev, a, b, curve.next, alpha, self.tension))
+		end
 		return R6Rig.pose("Torso", lerpEntry(a.entry, b.entry, alpha))
 	end
 	local ta = a.entry.transform or R6Rig.pose("Torso", a.entry)
@@ -307,6 +437,27 @@ local function grounded(part, legT, torsoT, weight)
 	return r0:Inverse() * CFrame.new(torsoRot:Inverse() * Vector3.new(0, lift, 0)) * r0 * legT
 end
 
+-- On an "auto" segment between poses that blend as whole rotations (legs on the pelvis, raw
+-- transforms), the fraction of the way from a to b, eased so the joint keeps its speed through the
+-- keys: a monotone curve over how far the joint travels (degrees, plus studs x 10) key to key.
+function R6Clip:_progress(part, p, a, b, n, u)
+	local function pose(k)
+		local t = self:_entry(part, k.entry, k.frame)
+		return k.entry.space == "root" and self._rootCache[k.entry] or t
+	end
+	local function travel(x, y)
+		local cx, cy = pose(x), pose(y)
+		return Sequence.angleBetween(cx, cy) + (cx.Position - cy.Position).Magnitude * 10
+	end
+	local d = travel(a, b)
+	if d < 1e-4 then
+		return u
+	end
+	local dp = p and travel(p, a)
+	local dn = n and travel(b, n)
+	return curveValue(dp and -dp, 0, d, dn and d + dn, p and p.frame, a.frame, b.frame, n and n.frame, u, self.tension) / d
+end
+
 -- All six joint Transforms at a (fractional) frame.
 function R6Clip:sample(frame)
 	local out = {}
@@ -314,9 +465,13 @@ function R6Clip:sample(frame)
 	for _, part in R6Rig.ORDER do
 		if part ~= "Torso" then
 			local f = clampFrame(self, frame + (self.leads[part] or 0))
-			local a, b, alpha = self:_segment(part, f)
+			local a, b, alpha, curve = self:_segment(part, f)
 			if a then
 				local t
+				local u = alpha
+				if curve and a ~= b then
+					alpha = self:_progress(part, curve.prev, a, b, curve.next, u)
+				end
 				if a.entry.space == "root" and b.entry.space == "root" and a ~= b then
 					-- blend the leg where it lives (against the root), then hang it from this frame's
 					-- torso: a fast torso swing between keys cannot drag the legs through each other
@@ -327,7 +482,12 @@ function R6Clip:sample(frame)
 					local torso = R6Rig.fk({ Torso = out.Torso }).Torso
 					t = j.C0:Inverse() * torso:Inverse() * leg * j.C1
 				elseif a ~= b and named(a.entry) and named(b.entry) then
-					t = R6Rig.pose(part, lerpEntry(a.entry, b.entry, alpha))
+					if curve and (not curve.prev or named(curve.prev.entry)) and (not curve.next or named(curve.next.entry)) then
+						-- per angle and slide, on the curve through the keys (alpha is plain time here)
+						t = R6Rig.pose(part, curveEntry(curve.prev, a, b, curve.next, u, self.tension))
+					else
+						t = R6Rig.pose(part, lerpEntry(a.entry, b.entry, alpha))
+					end
 				else
 					t = blend(self:_entry(part, a.entry, a.frame), self:_entry(part, b.entry, b.frame), alpha)
 				end
@@ -347,10 +507,88 @@ function R6Clip:sample(frame)
 	return out
 end
 
+-- Stretch the clip's phases by a weight profile (see opts.weight): keys, markers and the meta
+-- frames move together, the strike window keeps its speed. Once per clip; bake() calls it.
+local META_FRAMES = { "hit", "cancel", "go" }
+local META_WINDOWS = { "strike", "active", "windup", "airborne" }
+function R6Clip:weigh(profile)
+	local info = self.meta or {}
+	if self._weighed or self.loop or info.airborne == true or (info.impact and not info.strike and not self.weightAsked) then
+		return self
+	end
+	profile = type(profile) == "string" and R6Clip.WEIGHTS[profile] or profile
+	if not profile then
+		return self
+	end
+	self._weighed = true
+	local len = self:length()
+	local meta = self.meta or {}
+	-- breakpoints and the factor of the span that starts at each
+	local cuts
+	if meta.strike and meta.hit then
+		local cancel = meta.cancel
+		for _, m in self.markers do
+			if m.name == "Cancel" and not cancel then
+				cancel = m.frame
+			end
+		end
+		cancel = math.clamp(cancel or len, meta.hit, len)
+		cuts = {
+			{ 0, profile.load or 1 },
+			{ meta.strike[1], profile.strike or 1 },
+			{ meta.hit, profile.hold or 1 },
+			{ cancel, profile.recover or 1 },
+			{ len, 1 },
+		}
+	else
+		cuts = { { 0, profile.move or 1 }, { len, 1 } }
+	end
+	local function map(f)
+		local out = 0
+		for i = 1, #cuts - 1 do
+			local a, b, k = cuts[i][1], cuts[i + 1][1], cuts[i][2]
+			if f <= a then
+				break
+			end
+			out += (math.min(f, b) - a) * k
+		end
+		if f > len then
+			out += f - len
+		end
+		return math.floor(out + 0.5)
+	end
+	for _, k in self.keys do
+		k.frame = map(k.frame)
+	end
+	for _, m in self.markers do
+		m.frame = map(m.frame)
+	end
+	for _, field in META_FRAMES do
+		if type(meta[field]) == "number" then
+			meta[field] = map(meta[field])
+		end
+	end
+	for _, field in META_WINDOWS do
+		if type(meta[field]) == "table" then
+			meta[field] = { map(meta[field][1]), map(meta[field][2]) }
+		end
+	end
+	if type(meta.wings) == "table" then
+		for _, k in meta.wings do
+			k[1] = map(k[1])
+		end
+	end
+	self._cache, self._rootCache = {}, {}
+	return self
+end
+
 -- opts.step: sample every N frames (1 = every 60 fps frame; 5 = 12 poses a second "on twos")
 -- opts.stepped: hold each sample (Constant easing) instead of sliding between them
 function R6Clip:bake(opts)
 	opts = opts or {}
+	if self.weight then
+		self:weigh(self.weight)
+	end
 	local step = opts.step or 1
 	local len = self:length()
 	-- parts that trail (negative lead) finish after the last key: run on until they land
@@ -629,6 +867,27 @@ function R6Clip.profile(baked, limb, dir, tipPoint)
 	}
 end
 
+-- The house grammar (the user's R6 movement system), measured with tools/house.luau. Every clip is
+-- held to how that system moves the body:
+--   bury   how far a leg's top rides up into the torso (the leg is 2 long). The house lowers the
+--          body on ONE leg: its crouch puts the front leg 0.96 in and keeps the back one 0.11,
+--          stretched behind; its run passes 0.46/-0.20. Two legs sunk together read as stumps.
+--          held: in a pose held 10+ frames the shallower leg stays within 0.4; peak: no leg past
+--          1.4 (its crouch-walk 1.32). Landings (meta.impact) are the house's own exception.
+--   width  feet under the hips: soles 0.5-0.82 out from the centre in every grounded house clip
+--   lean   a lowered body leans into it, about 30 degrees per stud of drop (crouch 0.74 -> 22,
+--          run 0.33 -> 20, walk 0.25 -> 9): at least 20 per stud once the drop passes 0.3
+--   face   the head counters the lean: in held and moving house clips the face looks 2-13
+--          degrees down, never past 15 (landings and crawls aside)
+-- width, lean and face are checked on grounded loops (idles, stances, guards, walks, runs).
+R6Clip.HOUSE = {
+	bury = { held = 0.4, peak = 1.4, frames = 10 },
+	width = 0.85,
+	leanPerStud = 20,
+	leanFrom = 0.3,
+	face = -15,
+}
+
 -- The hard rules, checked on numbers instead of eyes:
 --   pops      no part jumps in one frame (a spike against its neighbours, or over maxStep = 90
 --             degrees) unless a "Snap" marker or the meta.strike window covers it
@@ -645,10 +904,16 @@ end
 --   overhead  no fist swings above the shoulders AND behind the back unless meta.overhead says the
 --             move means it: that is the "long way round" a rotation blend takes between poses
 --             more than 180 degrees apart (an arm flung back coming home over the head)
+--   swing     a weapon cut (meta.tip) sweeps 120+ degrees from its wind-up to its follow-through,
+--             and an overhead cut (meta.cut = "overhead") starts with the blade over and behind the head
 --   export    the KeyframeSequence export, played the way Roblox plays it (shortest-way blends
 --             between the kept keys), reproduces the clip within 1 degree
 --   feet      soles stay on the floor (y = -3) unless meta.airborne; both off it needs meta.hop.
 --             The note says how far to slide the leg (pos.up) or to set ground = true.
+--   bury      the legs ride into the torso the house way: never both together in a held pose,
+--             none past 1.4 (R6Clip.HOUSE; meta.bury, meta.buryHeld, meta.impact for landings)
+--   house     grounded loops keep the house grammar's body: feet under the hips, the lean
+--             following the drop, the face near level (R6Clip.HOUSE)
 -- meta.limb names the striking part; meta.tip, a point in that part's space, is where it strikes
 -- from when it holds a weapon (a sword in a Tool's default grip: Vector3.new(0, -1, -blade), the
 -- blade standing out of the fist along the arm's front). Returns { ok, notes = {...}, metrics = {...} }.
@@ -825,6 +1090,71 @@ function R6Clip.audit(baked, meta)
 		end
 	end
 
+	-- bury and the house grammar's body rules (R6Clip.HOUSE)
+	do
+		local H = R6Clip.HOUSE
+		local peakBudget, heldBudget = meta.bury or H.bury.peak, meta.buryHeld or H.bury.held
+		local peak, peakAt, peakLeg = 0, 0, ""
+		local run, held, heldAt, heldDepth = 0, 0, 0, 0
+		local loopCheck = baked.loop and not meta.airborne
+		local wide, wideAt, upright, uprightAt, uprightLean, uprightDrop, face, faceAt = 0, 0, math.huge, 0, 0, 0, 0, 0
+		for _, w in world do
+			local t = w.parts.Torso
+			local depth = {}
+			for _, leg in { "Left Leg", "Right Leg" } do
+				depth[leg] = t:PointToObjectSpace(w.parts[leg] * Vector3.new(0, 1, 0)).Y + 1
+				if depth[leg] > peak then
+					peak, peakAt, peakLeg = depth[leg], w.frame, leg
+				end
+				if loopCheck then
+					local side = math.abs((w.parts[leg] * Vector3.new(0, -1, 0)).X)
+					if side > wide then
+						wide, wideAt = side, w.frame
+					end
+				end
+			end
+			local shallow = math.min(depth["Left Leg"], depth["Right Leg"])
+			run = shallow > heldBudget and run + 1 or 0
+			if run > held then
+				held, heldAt, heldDepth = run, w.frame, shallow
+			end
+			if loopCheck then
+				local drop = -t.Position.Y
+				local lean = math.deg(math.asin(math.clamp(-t.UpVector.Z, -1, 1)))
+				if drop > H.leanFrom then
+					local perStud = lean / drop
+					if perStud < upright then
+						upright, uprightAt, uprightLean, uprightDrop = perStud, w.frame, lean, drop
+					end
+				end
+				local pitch = math.deg(math.asin(math.clamp(w.parts.Head.LookVector.Y, -1, 1)))
+				if pitch < face then
+					face, faceAt = pitch, w.frame
+				end
+			end
+		end
+		metrics.bury = peak
+		if peak > peakBudget + 1e-3 then
+			table.insert(notes, string.format("bury: %s rides %.2f studs into the torso at frame %d (house peak %.2f): lower the body less", peakLeg, peak, peakAt, peakBudget))
+		end
+		-- in the air the house tucks both legs on purpose (its jump and climb)
+		if held >= H.bury.frames and not meta.impact and not meta.airborne then
+			table.insert(notes, string.format("bury: both legs stay %.2f+ studs inside the torso for %d frames (to frame %d): the body is lowered on both legs like stumps. Lower it the house way: split the feet front and back, the front leg takes the depth (up to 1.0), the back leg stays long (within %.2f) and stretches behind", heldBudget, held, heldAt, heldBudget))
+		end
+		if loopCheck then
+			metrics.feetWidth, metrics.faceDown = wide, face
+			if wide > H.width + 1e-3 then
+				table.insert(notes, string.format("house: a sole is %.2f studs out from the centre at frame %d (house feet stay under the hips, 0.5-%.2f): stand narrower and split the feet front and back instead", wide, wideAt, H.width))
+			end
+			if upright < H.leanPerStud then
+				table.insert(notes, string.format("house: the body drops %.2f but leans only %.0f degrees at frame %d (the house leans about 30 per stud of drop, at least %d): lean into the drop, or drop less", uprightDrop, uprightLean, uprightAt, H.leanPerStud))
+			end
+			if face < H.face then
+				table.insert(notes, string.format("house: the face looks %.0f degrees down at frame %d (house held and moving poses: 2-13 down): nod the head up against the torso's lean", -face, faceAt))
+			end
+		end
+	end
+
 	-- legs: two blocks a stud wide whose centre lines come closer than legGap (0.75) are passing
 	-- through each other: an X from the side, or one leg inside the other from the front
 	do
@@ -869,6 +1199,58 @@ function R6Clip.audit(baked, meta)
 			end
 			if scissorAt then
 				table.insert(notes, string.format("legs: the legs cross into an X seen from the %s at frame %d (by %.2f studs): the hips are in one order and the feet in the other; keep the legs on a pelvis (space = \"root\", hips 0.2-0.5) or step the feet the other way", scissorView, scissorAt, scissor))
+			end
+		end
+	end
+
+	-- swing: a weapon is swung, not punched. From the wind-up (meta.strike[1]) to the end of its
+	-- follow-through (meta.cancel) the blade has to travel a wide arc (meta.minArc degrees, default
+	-- 120), and a
+	-- cut from above (meta.cut = "overhead") has to start with the blade raised over the head and
+	-- hanging behind it. A punch-shaped cut (the arm pushed out along a line) fails both.
+	if meta.tip and meta.strike and meta.hit and meta.swing ~= false then
+		local limb = ALIAS[meta.limb] or meta.limb
+		local side = limb == "Left Arm" and -1 or 1
+		local function tipDir(w)
+			local shoulder = w.parts.Torso * Vector3.new(side, 0.5, 0)
+			return (w.parts[limb] * meta.tip - shoulder).Unit
+		end
+		local startW = world[math.floor(meta.strike[1]) + 1]
+		local last = math.min(#world, math.floor((meta.cancel or #world) + 0.5) + 1)
+		if startW and limb and world[1].parts[limb] then
+			-- the arc the blade travels (summed frame to frame), not the angle between its ends: a
+			-- diagonal cut from behind one shoulder to behind the other hip ends close to where it
+			-- started, round the long way
+			-- (the swing ends where the blade first comes to rest after the hit: the settle's bounces
+			-- and the walk home are not part of the cut)
+			local widest, prev, stretch, n = 0, tipDir(startW), 0, 0
+			for i = math.floor(meta.strike[1]) + 2, last do
+				local d = tipDir(world[i])
+				local step = math.deg(math.acos(math.clamp(prev:Dot(d), -1, 1)))
+				if world[i].frame > meta.hit and step < 1.5 then
+					break
+				end
+				widest += step
+				prev = d
+				stretch += R6Rig.gap(limb, baked.frames[i].transforms[limb]).Magnitude
+				n += 1
+			end
+			metrics.swingArc = widest
+			-- the arm out at full stretch through the swing: its shoulder slid out of the socket
+			metrics.swingStretch = n > 0 and stretch / n or 0
+			if n > 0 and metrics.swingStretch < (meta.minStretch or 0) then
+				table.insert(notes, string.format("swing: the sword arm is slid out only %.2f studs on average through the swing (want %.2f+): reach out at full stretch, the shoulder thrown out along the arc (pos), not tucked in like a punch", metrics.swingStretch, meta.minStretch))
+			end
+			if widest < (meta.minArc or 120) then
+				table.insert(notes, string.format("swing: the blade travels only %.0f degrees of arc from the wind-up (frame %d) to the end of its follow-through (want %d+): a weapon is swung, not punched. Wind it up further back, keep the arm out at full stretch through the cut (spread / pos out), and carry it through past the target", widest, meta.strike[1], meta.minArc or 120))
+			end
+			if meta.cut == "overhead" then
+				local head = startW.parts.Head.Position
+				local tip = startW.parts[limb] * meta.tip
+				metrics.windupTipHeight = tip.Y - head.Y
+				if tip.Y < head.Y + 1.5 or tip.Z < head.Z - 0.5 then
+					table.insert(notes, string.format("swing: an overhead cut starts with the blade %.1f above the head and %.1f behind it at frame %d (want 1.5+ above and the tip hanging behind): raise the sword all the way over the head before the cut", tip.Y - head.Y, tip.Z - head.Z, meta.strike[1]))
+				end
 			end
 		end
 	end

@@ -75,6 +75,24 @@ Same method (search, `GetObjects` with scripts destroyed, `export_rbxm`, `lune r
   not used, the parkour pack's 25-degree tilt reads as running on a wall.
 - 77251926150649 and 4935124655 hold only an "Automatic Save"; 74885347629474 could not be loaded.
 
+## Sources for brand-new moves (2026-10-29)
+
+Found while building `new-moves.md`, after the skill answered a mage request with reposed punches:
+- **"R6 Magic Spell Animation Pack x24"** (Creator Store 139756676371748), found with "R6 magic
+  animation" and "R6 fireball animation" ("R6 spell cast animation" found nothing). Not measured
+  yet: Studio was disconnected when it was found.
+- Web search "spell casting animation reference video mocap two hands fireball": Rokoko's free
+  magic-themed mocap, Kevin Iglesias' "Human Spellcasting Animations" (a free version on itch.io),
+  Rapamotion's "Mage Abilities" mocap, and an Animation Mentor note to film your own reference.
+- **"Human Spellcasting Animations FREE"** (Kevin Iglesias, kevdev.itch.io; name your price; the
+  page states no license text): downloaded with the user's approval (the "Blender files only"
+  build, 2.3 MB, `HumanF_`/`HumanM_SpellcastingAnimationsFREE_2.0.blend`, 46 takes each).
+  `MagicAttackDirect2H01` (male and female) are the references of the `mage/` example. The
+  files are not in the repository; only measured key poses are.
+- Tools on this machine that make those usable: Blender 5.2 (headless FBX/BVH/GLB import, used by
+  `tools/mocap_points.py`), yt-dlp and ffmpeg (video frames, with permission), and the
+  `eclipse-animator` MCP's `video_to_animation` and `import_animation_pack`.
+
 ## The user's correction (2026-10-28)
 
 After the first version the user judged the IK-driven clips cramped, timid and without force and asked for: reference first (find the R6 version and imitate it, else

@@ -286,6 +286,12 @@ end
 
 function R6Study.entry(part, transform, prev)
 	local rot, offset = R6Rig.fromTransform(part, transform)
+	return R6Study.entryFromRotation(part, rot, offset, prev)
+end
+
+-- The same split for a rotation (and offset) already in the parent's space.
+function R6Study.entryFromRotation(part, rot, offset, prev)
+	offset = offset or Vector3.zero
 	local rx, ry, rz = rot:ToEulerAnglesYXZ()
 	rx, ry, rz = math.deg(rx), math.deg(ry), math.deg(rz)
 	local options = { { rx, ry, rz }, { 180 - rx, ry + 180, rz + 180 } }
@@ -329,8 +335,14 @@ function R6Study.entry(part, transform, prev)
 end
 
 -- The key poses of a clip at the given frames (60 fps), as R6Clip pose tables.
-function R6Study.keyPoses(seq, frames, fps)
+-- opts.rootLegs: write the legs the way R6Clip's pelvis reads them (space = "root", the pelvis
+-- taking opts.hips = 0.35 of the torso's turn, ground = true), so the same pose comes back: the
+-- angle against the pelvis and the slide in root space minus the pelvis's own socket slide.
+-- Mocap and many packs key legs against the torso; keyed that way under a different torso, a deep
+-- fold or a turn crosses them into an X.
+function R6Study.keyPoses(seq, frames, fps, opts)
 	fps = fps or 60
+	opts = opts or {}
 	-- walk every frame (not only the keys) so each angle stays continuous through the clip
 	local out, prev, want = {}, {}, {}
 	local last = 0
@@ -341,9 +353,25 @@ function R6Study.keyPoses(seq, frames, fps)
 	for f = 0, last do
 		local transforms = Sequence.sample(seq, f / fps)
 		local pose = {}
+		local torsoRot = R6Rig.fromTransform("Torso", transforms.Torso or CFrame.identity)
+		local pelvisRot = Sequence.blend(CFrame.identity, torsoRot, opts.hips or 0.35)
+		local torsoCF = R6Rig.fk({ Torso = transforms.Torso or CFrame.identity }).Torso
 		for _, part in R6Rig.ORDER do
 			if seq.tracks[part] then
-				pose[part] = R6Study.entry(part, transforms[part] or CFrame.identity, prev[part])
+				local isLeg = part == "Left Leg" or part == "Right Leg"
+				if opts.rootLegs and isLeg then
+					local legRot, legOff = R6Rig.fromTransform(part, transforms[part] or CFrame.identity)
+					-- R6Clip slides the socket to the pelvis by this much; take it back out
+					local hipC0 = R6Rig.JOINTS[part].C0.Position
+					local pelvisSlide = (CFrame.new(torsoCF.Position) * pelvisRot) * hipC0 - torsoCF * hipC0
+					local rootOff = torsoRot * legOff - pelvisSlide
+					local e = R6Study.entryFromRotation(part, pelvisRot:Inverse() * torsoRot * legRot, rootOff, prev[part])
+					e.space, e.ground = "root", true
+					e.hips = opts.hips
+					pose[part] = e
+				else
+					pose[part] = R6Study.entry(part, transforms[part] or CFrame.identity, prev[part])
+				end
 				prev[part] = pose[part]
 			end
 		end
@@ -422,6 +450,15 @@ function R6Study.formatKeys(keys)
 					if e[name] and math.abs(e[name]) >= 0.05 then
 						table.insert(fields, name .. " = " .. num(e[name]))
 					end
+				end
+				if e.space then
+					table.insert(fields, string.format("space = %q", e.space))
+				end
+				if e.ground then
+					table.insert(fields, "ground = true")
+				end
+				if e.hips then
+					table.insert(fields, "hips = " .. string.format("%g", e.hips))
 				end
 				if e.pos then
 					local p = {}

@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: mage-fireball-new-move
+expected_outcome: |
+  The agent treats this as a move the kit does not have: it writes a motion brief (gather, charge,
+  release, recoil), searches several sources with varied vocabulary (Creator Store R6 magic packs
+  such as "R6 magic animation", Roblox emotes, free spellcasting mocap such as Rokoko or itch.io
+  packs, video), asks before downloading anything, and either measures/converts a real reference
+  (study, or `lune run mocap` for an FBX/BVH) or says plainly which tiers came up empty and offers
+  that the user film the move. The clip is keyed from the reference's timing and poses, not by
+  reposing CombatMoves punches; both palms push along the aim line at a release marker. The reply
+  contains a reference sheet naming each source and what was taken from it, the release frame and
+  the audit result.
