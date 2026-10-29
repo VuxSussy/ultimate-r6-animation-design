@@ -7,8 +7,8 @@
 --   Head   from the neck to the top of the head
 --   Arms   pointed where the human arm points (shoulder to fist, or toward the elbow with armBlend);
 --          no slide by default: a human's narrow shoulders would drag R6 arms into the chest
---   Legs   the human hip-to-sole vector, kept on each R6 hip, so a bent knee becomes the leg riding
---          up into the torso (up to legSlide) and the feet stay as far apart as the R6 hips
+--   Legs   each R6 foot where the human foot is (shifted out to R6's hip width), hung from a square
+--          pelvis (opts.hips), riding straight up into the torso for a bent knee (up to legSlide)
 -- No IK: each frame copies where the body points are.
 --
 --   local baked = MocapToR6.convert(doc, { name = "FireballCast", inPlace = true })
@@ -23,6 +23,8 @@ MocapToR6.DEFAULTS = {
 	armBlend = 0, -- 0: point at the fist, 1: follow the upper arm (keeps a bent-arm silhouette)
 	armSlide = 0, -- studs an arm may slide to reach the scaled human fist (0 = direction only)
 	legSlide = 1.5,
+	hips = 0, -- share of the torso's turn and lean the R6 hips follow (R6Clip's pelvis); a human's
+	-- small hip turn on R6's 2-stud-wide hips crosses the legs, so by default the hips stay square
 	inPlace = false, -- true: drop the body's sideways and forward travel (keep only the height)
 	maxTravel = 1.5, -- otherwise, travel against the first frame is kept up to this many studs
 }
@@ -99,29 +101,38 @@ function MocapToR6.solvePose(p, rest, opts, state)
 		out[part] = t
 	end
 
-	-- legs: the human hip -> sole vector on each R6 hip (feet as far apart as the R6 hips)
+	-- legs: each R6 foot on the human's foot (shifted out to R6's hip width), hung from a pelvis
 	local legSlide = opts.legSlide or MocapToR6.DEFAULTS.legSlide
-	local restTorso = R6Rig.fk({}).Torso
+	-- the pelvis the legs hang from: the torso's position, a share of its rotation
+	-- centred on the torso's own hip line (where the human hips are), turned only by that share
+	local pelvisRot = Sequence.blend(CFrame.identity, torso.Rotation, opts.hips or MocapToR6.DEFAULTS.hips)
+	local pelvis = CFrame.new(torso * Vector3.new(0, -1, 0)) * pelvisRot * CFrame.new(0, 1, 0)
 	for _, side in { "Left", "Right" } do
 		local part = side .. " Leg"
 		local sole = p[side .. "Sole"]
-		local rel = sole - p[side .. "Hip"]
-		-- at rest the R6 sole sits off the hip pivot by a little more than the human's does
-		local restRel = rest[side .. "Sole"] - rest[side .. "Hip"]
-		local restR6 = R6Rig.tip(part, R6Rig.fk({})[part]) - R6Rig.pivot(part, restTorso)
+		-- the R6 foot goes where the human foot is (planted feet stay planted, no skating as the
+		-- body folds), moved sideways by the difference between R6's wide hips and the human's
+		local restTip = R6Rig.tip(part, R6Rig.fk({})[part])
 		local hipRot = frameFrom(p.RightHip - p.LeftHip, Vector3.yAxis)
-		local goal = R6Rig.pivot(part, torso) + rel + hipRot * (restR6 - restRel)
+		local pivot = pelvis * R6Rig.JOINTS[part].C0.Position
+		local goal = sole + hipRot * (restTip - rest[side .. "Sole"])
 		local front = p[side .. "Toe"] and (p[side .. "Toe"] - p[side .. "Ankle"]) or torso.LookVector
-		local dir = goal - R6Rig.pivot(part, torso)
+		-- aim so the sole lands on the goal's floor position (x, z); the leg then rides straight
+		-- up into the torso (or out of it) for the height, never along its own slant: a front leg
+		-- slid along its slant puts its top behind the back leg's and crosses them from the side
+		local reach = R6Rig.reach(part)
+		local flatGoal = Vector3.new(goal.X - pivot.X, 0, goal.Z - pivot.Z)
+		local across = math.min(flatGoal.Magnitude, reach * 0.98)
+		local flatDir = flatGoal.Magnitude > 1e-4 and flatGoal.Unit or Vector3.zero
+		local dir = flatDir * across - Vector3.yAxis * math.sqrt(reach * reach - across * across)
 		local t, rot = R6Rig.orient(part, torso, dir, { front = Vector3.new(front.X, 0, front.Z), from = state[part] })
 		state[part] = rot
+		-- slide the socket from the torso's hip to the pelvis's, then up/down for the height
+		local socketSlide = pivot - R6Rig.pivot(part, torso)
 		local w = R6Rig.fk({ Torso = out.Torso, [part] = t })
-		local miss = goal - R6Rig.tip(part, w[part])
-		if miss.Magnitude > legSlide then
-			miss = miss.Unit * legSlide
-		end
+		local lift = math.clamp(goal.Y - (R6Rig.tip(part, w[part]) + socketSlide).Y, -legSlide, legSlide)
 		local _, socket = R6Rig.fromTransform(part, t)
-		out[part] = R6Rig.toTransform(part, rot, socket + torso.Rotation:Inverse() * miss)
+		out[part] = R6Rig.toTransform(part, rot, socket + torso.Rotation:Inverse() * (socketSlide + Vector3.new(0, lift, 0)))
 	end
 	return out
 end
