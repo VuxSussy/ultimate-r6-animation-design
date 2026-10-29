@@ -16,6 +16,11 @@ exists do you fall back to the movement grammar of the user's R6 movement system
 
 ## 1. Where to look, in order
 
+For a move this kit has never made (magic, weapons other than a sword, emotes, anything that is
+not a punch, kick, dash, block, reaction or locomotion), use the longer ladder in `new-moves.md`
+instead: it adds Roblox emotes, free human motion capture (`lune run mocap`), video and the user
+acting the move out, and requires a reference sheet.
+
 Stop at the first source that has the move (or something close: a "heavy punch" for a cross, a
 "kick" for a push kick).
 
