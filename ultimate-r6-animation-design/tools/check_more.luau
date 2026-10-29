@@ -256,6 +256,77 @@ return function(Env, check)
 		check("study sweeps follow the weapon tip", withTip.sweeps["Left Arm"].fastest > plain.sweeps["Left Arm"].fastest)
 	end
 
+	-- mocap -> R6: a human T-pose stands the R6 straight with arms level; a crouch keeps the soles on
+	-- the floor by riding the legs into the torso; a fist pushed forward points the R6 arm forward;
+	-- the feet stay as far apart as the R6 hips (no crossing)
+	do
+		local MocapToR6 = Env.load("MocapToR6")
+		local function body(drop, rightFist)
+			local hipY = -1 - drop
+			local P = {
+				Pelvis = { 0, hipY + 0.1, 0 },
+				LeftHip = { -0.2, hipY, 0 }, RightHip = { 0.2, hipY, 0 },
+				LeftKnee = { -0.2, hipY - 1 + drop / 2, -drop }, RightKnee = { 0.2, hipY - 1 + drop / 2, -drop },
+				LeftAnkle = { -0.2, -2.87, 0 }, RightAnkle = { 0.2, -2.87, 0 },
+				LeftToe = { -0.2, -3, -0.27 }, RightToe = { 0.2, -3, -0.27 },
+				LeftShoulder = { -0.4, hipY + 1.1, 0 }, RightShoulder = { 0.4, hipY + 1.1, 0 },
+				LeftElbow = { -1.0, hipY + 1.1, 0 }, RightElbow = { 1.0, hipY + 1.1, 0 },
+				LeftFist = { -1.8, hipY + 1.1, 0 }, RightFist = rightFist or { 1.8, hipY + 1.1, 0 },
+				Neck = { 0, hipY + 1.3, 0 }, HeadTop = { 0, hipY + 1.85, 0 },
+			}
+			return P
+		end
+		local doc = { fps = 30, frames = {
+			{ t = 0, points = body(0) },
+			{ t = 0.5, points = body(0.6, { 0.4, -1.6 + 1.1, -1.4 }) },
+		} }
+		local baked = MocapToR6.convert(doc, { name = "MocapTest" })
+		local w0 = R6Rig.fk(baked.frames[1].transforms)
+		local w1 = R6Rig.fk(baked.frames[#baked.frames].transforms)
+		local tip = R6Rig.tip("Left Arm", w0["Left Arm"])
+		local pivot = R6Rig.pivot("Left Arm", w0.Torso)
+		check("mocap T-pose: arm level", math.abs(tip.Y - pivot.Y) < 0.05 and tip.X < pivot.X - 1.4, tip)
+		local worst = 0
+		for _, w in { w0, w1 } do
+			for _, leg in { "Left Leg", "Right Leg" } do
+				worst = math.max(worst, math.abs(R6Rig.tip(leg, w[leg]).Y + 3))
+			end
+		end
+		check("mocap soles stay on the floor through a crouch", worst < 0.03, worst)
+		local gap = R6Rig.gap("Left Leg", baked.frames[#baked.frames].transforms["Left Leg"]).Magnitude
+		check("mocap crouch rides the legs into the torso", gap > 0.4 and gap <= 1.5, gap)
+		local fist = R6Rig.tip("Right Arm", w1["Right Arm"]) - R6Rig.pivot("Right Arm", w1.Torso)
+		check("mocap fist pushed forward points the arm forward", fist.Unit.Z < -0.6, fist.Unit)
+		local a = R6Clip.audit(baked, {})
+		local crossed = false
+		for _, n in a.notes do
+			crossed = crossed or string.find(n, "^legs") ~= nil
+		end
+		check("mocap legs stay apart", not crossed and a.metrics.legGap > 0.75, a.metrics.legGap)
+	end
+
+	-- the Blender half of the mocap path, when Blender is installed: a CMU-named BVH (cm, Y up, facing
+	-- +Z) comes out scaled to a 2-stud leg, facing -Z, with every bone found
+	do
+		local fs, process = Env.fs, require("@lune/process")
+		local blender = "/Applications/Blender.app/Contents/MacOS/Blender"
+		if fs.isFile(blender) then
+			local out = "fixtures/.synthetic_points.json"
+			local r = process.exec(blender, { "-b", "--factory-startup", "--python", "mocap_points.py", "--", "fixtures/synthetic_cmu.bvh", out, "--fps=30" })
+			local ok = r.ok and fs.isFile(out)
+			check("blender reads the BVH fixture", ok, r.stderr)
+			if ok then
+				local doc = require("@lune/serde").decode("json", fs.readFile(out))
+				fs.removeFile(out)
+				local p = doc.frames[1].points
+				check("mocap points: hips 2 studs over the floor", math.abs(p.LeftHip[2] + 1) < 0.02, p.LeftHip[2])
+				check("mocap points: facing -Z, left is -X", p.LeftToe[3] < -0.1 and p.LeftHip[1] < 0, p.LeftToe[3])
+			end
+		else
+			print("[check] Blender not found: skipped the mocap_points test")
+		end
+	end
+
 	-- R6Study reads back what R6Clip keyed: the jab's shoulder slide and its strike frame
 	do
 		local R6Study = Env.load("R6Study")
