@@ -74,8 +74,12 @@ Real people performing the move, as FBX/BVH, many of them free:
 **Ask the user before downloading** (name the file, the site and the size). Then:
 
 ```bash
-lune run mocap <file.fbx|.bvh|.glb> <outDir> <ClipName> --fit=4
+lune run mocap <file.fbx|.bvh|.glb|.blend> <outDir> <ClipName> --fit=4
 ```
+
+A `.blend` with many takes: list them first (`Blender -b --factory-startup --disable-autoexec
+--python tools/mocap_points.py -- <file.blend> --list`), then pass `--action=<take>`. Always keep
+`--disable-autoexec`: a downloaded `.blend` can carry scripts.
 
 Blender (headless, `tools/mocap_points.py`) reads the file into body points, `MocapToR6` solves the
 six R6 parts from them (arms point where the human's do, a bent knee becomes the leg riding into
@@ -106,6 +110,42 @@ real reference for anything, and the user knows exactly what they want. Feed it 
 Only after tiers 1-5: build from the archetype card (§6) and this skill's measured numbers, say in
 the hand-over that the clip is unreferenced, and offer tier 5.
 
+### Worked example: the mage fireball (2026-10-29)
+
+The first real run of this protocol, kept in the project's `mage/` folder:
+1. **Find.** Creator Store "R6 magic animation" found a 24-clip R6 magic pack (Studio was
+   disconnected, so it could not be loaded). Web search found free spellcasting mocap; the user
+   approved downloading Kevin Iglesias' "Human Spellcasting Animations FREE" (itch.io, name your
+   price; the "Blender files only" build, 2.3 MB, two `.blend` files). On itch.io the download
+   key on the page expires within seconds and the file link within 60 s: fetch right away.
+2. **Convert.** `--list` showed 46 takes; `HumanM@MagicAttackDirect2H01` (two-hand cast) and the
+   female performance of the same move became references 1 and 2.
+3. **Read the phases, not the guess.** A phase table (fist heights and reach, torso lean and
+   drop every 6 frames) showed the motion repeating after frame 96: the take loops through a
+   cyclic modifier, so `--end=1.6` cut the real 1.6 s. It also showed the cast is a throw from
+   over the head (dip, sweep up wide, load behind the head arched back, throw forward and down in
+   4-5 frames folding 45 degrees), not the chest push one would have guessed.
+4. **Key from the reference** at the phase boundaries: `lune run study <ref.rbxm>
+   --keys=0,12,18,... --root-legs --hips=0`. Then R6-ify (palms 0.6 out at the release, fold and
+   arch 15% deeper, the throw easing in with `quadIn`).
+5. **Check hands and feet against the reference**: `lune run compare <ref.rbxm> <yours.rbxm>`.
+   The first pass had the arms 33-47 degrees off the reference during the recovery: one key every
+   12 frames could not follow the wide arc the arms swing on the way back. Keys every 3-5 frames
+   there fixed it; afterwards the only differences were the meant ones (fists 0.9 further at the
+   release, lean +7), the arms within 8 degrees, the feet within 0.05 stud.
+
+What went wrong on the way, each now fixed in the tools:
+- Legs keyed against a torso that folds 45 degrees crossed into an X from the side: hand mocap
+  legs over on the pelvis (`--root-legs`).
+- R6 hips are 2 studs wide, a human's about 0.4: the performer's 11-degree hip turn, five times
+  larger on R6, crossed the legs again. Mocap legs hang from a square pelvis (`--hips=0`,
+  `MocapToR6` default `hips = 0`).
+- Legs slid along their own slant to reach the floor put the front leg's top behind the back
+  leg's: R6 legs ride straight up into the torso, and each R6 foot goes where the human foot is
+  (shifted out to R6's hip width), so planted feet do not skate while the body folds.
+- A pose that names one part twice ("RightLeg" from a merge, "Right Leg" added) kept whichever
+  the table listed last: R6Clip now refuses it.
+
 ## 4. The reference sheet
 
 Put it in the hand-over and in the clip's code header:
@@ -132,7 +172,10 @@ A clip with no sheet, or with only kit moves on it, is not done.
    - legs on the pelvis (`space = "root"`, `ground = true`)
    - hold the release pose 4-8 frames, lead with the torso, trail the head and the free hand
 4. **Audit and compare**: `R6Clip.audit` clean, `study` on your clip next to the reference's.
-5. **Look**: pose it in Studio at the release frame, play it in a playtest.
+5. **Hands and feet**: `lune run compare <reference.rbxm> <yours.rbxm>` frame by frame. Arms
+   within about 10 degrees and feet within 0.25 stud of the reference, except where you meant
+   otherwise (and say where). A planted reference foot that moves in yours is skating.
+6. **Look**: pose it in Studio at the release frame, play it in a playtest, or scrub the preview.
 
 ## 6. Archetype cards (what to look for)
 

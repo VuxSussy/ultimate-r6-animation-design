@@ -84,6 +84,11 @@ Found while building `new-moves.md`, after the skill answered a mage request wit
 - Web search "spell casting animation reference video mocap two hands fireball": Rokoko's free
   magic-themed mocap, Kevin Iglesias' "Human Spellcasting Animations" (a free version on itch.io),
   Rapamotion's "Mage Abilities" mocap, and an Animation Mentor note to film your own reference.
+- **"Human Spellcasting Animations FREE"** (Kevin Iglesias, kevdev.itch.io; name your price; the
+  page states no license text): downloaded with the user's approval (the "Blender files only"
+  build, 2.3 MB, `HumanF_`/`HumanM_SpellcastingAnimationsFREE_2.0.blend`, 46 takes each).
+  `MagicAttackDirect2H01` (male and female) are the references of the `mage/` example. The
+  files are not in the repository; only measured key poses are.
 - Tools on this machine that make those usable: Blender 5.2 (headless FBX/BVH/GLB import, used by
   `tools/mocap_points.py`), yt-dlp and ffmpeg (video frames, with permission), and the
   `eclipse-animator` MCP's `video_to_animation` and `import_animation_pack`.

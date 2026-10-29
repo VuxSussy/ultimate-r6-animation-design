@@ -36,9 +36,9 @@ works in three rules:
 | `scripts/R6Locomotion.luau` | client driver: wall run, landings, climb, jump/fall, idle/walk/run/Stance from the real state and speed | client |
 | `scripts/R6WallRun.luau` | a small client wall run that drives the WallRunLeft/Right clips (tune the gameplay yourself) | client |
 | `scripts/R15ToR6.luau` | R15 → R6 through body points, with limb slides (offline or sampled in Studio) | everywhere |
-| `scripts/MocapToR6.luau` | human motion capture (body points from Blender) → R6, legs riding into the torso for knees | everywhere |
+| `scripts/MocapToR6.luau` | human motion capture (body points from Blender) → R6: arms along the human's, each foot on the human's foot, legs from a square pelvis riding straight up for knees | everywhere |
 | `scripts/R6Combat.luau` | client combat animator: string, buffer, cancels, dash burst, block, hit-stop | client (+ server query) |
-| `tools/` | Lune: `study` (measure a file), `mocap` (FBX/BVH/GLB → R6 reference, via Blender and `mocap_points.py`), `check` (201 tests), `build` (pack + preview), `convert` (R15 → R6), `studio_place` | terminal |
+| `tools/` | Lune: `study` (measure a file), `mocap` (FBX/BVH/GLB/.blend → R6 reference, via Blender and `mocap_points.py`, with a hands-and-feet table against the human), `compare` (your clip vs its reference: limb directions, fist/foot travel, torso), `check` (206 tests), `build` (pack + preview), `convert` (R15 → R6), `studio_place` | terminal |
 
 All modules are ModuleScripts that `require(script.Parent.X)` each other. Put them in one folder,
 for example `ReplicatedStorage.R6Animation`. Run the tools from `tools/` (`lune` and `selene` come
@@ -209,9 +209,11 @@ R6Combat.movesFrom(CombatMoves), onHit = ... })` gives `attack()`, `dash(dir)`, 
 
 ## Before you say it is done
 
-- `lune run check` from `tools/` (201 tests: mocap → R6, math, slides, legs on the pelvis, the crossed-legs
+- `lune run check` from `tools/` (206 tests: mocap → R6, math, slides, legs on the pelvis, the crossed-legs
   case, every move's audit and commitment, export round trip, R15 → R6 accuracy, study).
 - `selene --config selene.toml ../scripts` from `tools/`.
+- `lune run compare <reference> <yours>`: arms within about 10 degrees and feet within 0.25 stud
+  of the reference except where you changed them on purpose (name those in the hand-over).
 - The audit is clean on every new clip, `study` agrees with the reference, and you looked at it
   from the side and the front (preview, or a posed rig in Studio).
 - If Studio MCP is connected, play or pose the clip on a real R6 rig and read a value back (the
@@ -225,6 +227,10 @@ code and a check that fails if it comes back. Do not remove the checks to make a
 
 | Mistake | Fix | Caught by |
 |---|---|---|
+| Mocap legs crossed into an X: keyed against a torso folding 45 degrees, and the performer's small hip turn five times larger on R6's 2-stud hips | `study --root-legs --hips=0`; `MocapToR6` hangs legs from a square pelvis | tests "study --root-legs keeps the feet", "mocap fold ... does not cross the legs" |
+| Mocap feet skated 0.5 stud as the body folded, and legs slid along their slant | each R6 foot goes where the human foot is; legs ride straight up | test "mocap feet stay planted"; `mocap`'s hands-and-feet table |
+| One part named twice in a pose ("RightLeg" and "Right Leg") silently kept a random one | `R6Clip:key` errors | test "a part keyed twice under two names is rejected" |
+| Arms drifted 33-47 degrees off the reference between sparse keys on a wide arc | `lune run compare` against the reference; add keys where it drifts | the compare step in the workflow |
 | Asked for a mage animation, the skill reposed its own punches and walks: no reference was searched for a move the kit never had | `references/new-moves.md`: brief, search vocabulary, the six-tier ladder, a reference sheet in every hand-over; `lune run mocap` turns free human mocap into R6 references | the eval "mage-fireball-new-move" (a reference sheet with real sources, no kit poses) |
 | IK aims and planted-leg solving made every move cramped and timid | no IK; angles plus short slides | audit `commit` (fist 2.4+ out, torso 25+ turned) |
 | A 60-degree torso twist swapped the hips and crossed the legs into an X | legs on a pelvis (`space = "root"`, `hips` 0.35); R15ToR6 hangs legs from the R15 pelvis | audit `legs` (centre lines, X from side/front); tests |
