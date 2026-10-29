@@ -8,18 +8,23 @@ description: 'Ultimate R6 Animation Design. Build, fix, convert and run Roblox R
 R6 is six blocks on six Motor6Ds: no elbows, no knees, no spine. Force on R6 comes from timing,
 from the torso committing to the move, and from limbs **sliding a short way out of their sockets**
 (a shoulder thrown into a punch, a leg riding up into the torso as the body drops). This skill
-works in three rules:
+works in four rules:
 
 1. **Reference first.** Before posing anything, look for the same move already made for R6, measure
    it, and imitate it (`references/reference-first.md`). A move the kit has never made is a
    research job: go down the whole source ladder in `references/new-moves.md` (R6 packs, Roblox
    emotes, human mocap through `lune run mocap`, video, the user acting it out) and never start
-   from the kit's punches and walks. The house grammar of the user's R6 movement system decides
-   style, not content.
+   from the kit's punches and walks.
 2. **No IK, no FK/IK system.** A clip is exactly the poses you key: named angles plus `pos`
    slides. The first version of this skill used IK aims and planted-leg solving; the user found the
    result cramped and timid, so it was removed. (`references/posing.md`)
-3. **Numbers, then eyes.** Every clip is audited (pops, hit timing, holds, commitment, slide
+3. **The house body, always.** Whatever the move and wherever its reference came from, the body
+   moves the way the user's R6 movement system moves it (the house grammar): how far it drops and
+   leans, which leg takes the depth, where the feet stand, where the face looks. Its numbers live
+   in `R6Clip.HOUSE`, the audit holds every clip to them, and `lune run house <movement-system.rbxm>
+   <yours.rbxm>` puts any clip next to them. A reference (an R15 clip, mocap, a pack) gives the
+   move's content and timing; where its body disagrees with the house, the house wins.
+4. **Numbers, then eyes.** Every clip is audited (pops, hit timing, holds, commitment, slide
    budgets, crossed legs, floor contact), measured against its reference, and looked at.
 
 ## What is bundled
@@ -38,7 +43,7 @@ works in three rules:
 | `scripts/R15ToR6.luau` | R15 → R6 through body points, with limb slides (offline or sampled in Studio) | everywhere |
 | `scripts/MocapToR6.luau` | human motion capture (body points from Blender) → R6: arms along the human's, each foot on the human's foot, legs from a square pelvis riding straight up for knees | everywhere |
 | `scripts/R6Combat.luau` | client combat animator: string, buffer, cancels, dash burst, block, hit-stop | client (+ server query) |
-| `tools/` | Lune: `study` (measure a file), `mocap` (FBX/BVH/GLB/.blend → R6 reference, via Blender and `mocap_points.py`, with a hands-and-feet table against the human), `compare` (your clip vs its reference: limb directions, fist/foot travel, torso), `check` (206 tests), `build` (pack + preview), `convert` (R15 → R6), `studio_place` | terminal |
+| `tools/` | Lune: `study` (measure a file), `mocap` (FBX/BVH/GLB/.blend → R6 reference, via Blender and `mocap_points.py`, with a hands-and-feet table against the human), `compare` (your clip vs its reference: limb directions, fist/foot travel, torso), `house` (any clip next to the house grammar's body ranges), `check` (214 tests), `build` (pack + preview), `convert` (R15 → R6), `studio_place` | terminal |
 
 All modules are ModuleScripts that `require(script.Parent.X)` each other. Put them in one folder,
 for example `ReplicatedStorage.R6Animation`. Run the tools from `tools/` (`lune` and `selene` come
@@ -81,6 +86,20 @@ References, read the one that matches the job:
 4. **Time and space it.** Ease the segment that *leaves* each key: `sineInOut` load, `snap` strike
    (3-5 frames), `{ settle = 0.1 }` arrival, `sineInOut` creep in the hold, `{ recover = 0.1 }`
    home. Overlap with `clip:lead`: torso +1, free arm −1, head −2.
+   **Weight is uneven speed, not smoothness.** A clip that glides through every key at one speed
+   reads fast and weightless; one that stops dead at every key reads robotic. Build with
+   `R6Clip.new(name, { curve = "auto", tension = 0.45, weight = "medium" })` (or set
+   `R6Clip.curve / tension / weight` before building a set):
+   - `curve = "auto"`: in-betweens and recoveries follow a monotone curve through the keys (the
+     limbs travel arcs, never overshoot a key);
+   - `tension` (0..1): how hard the body slows into each key on that curve. 0 glides (too smooth,
+     too fast), 0.45 surges between poses and settles into each, 1 stops at every key;
+   - `weight` (`light` / `medium` / `heavy`, `R6Clip.WEIGHTS`): timing contrast. The wind-up and
+     the recovery are stretched (medium 1.3x / 1.55x, heavy 1.7x / 1.9x), the strike keeps its
+     keyed speed, so the move is slow - fast - slow. Loops, jumps and landings keep their timing;
+   - the weight eases for single segments: `heavyIn` (slow to start, then a surge: a heavy
+     weapon into the cut), `heavyOut` (a fast arrival, then a long drift into the pose), `heavy`
+     (inertia out of a pose, a firm brake into the next).
 5. **Bake, audit, compare, look.** `R6Clip.audit` must come back clean. Run `study` on your clip
    next to the reference: the strike line should match and the torso numbers sit within ~20%.
    Look at it: `lune run build <outDir>` writes `preview.html` (scrub, 0.25×, trails), and if
@@ -137,8 +156,17 @@ blade stands out of the fist along the arm's front, so the arm's `raise` sets wh
 points (raise 0 forward, 90 straight up, 165 back over the head). Give the clip `meta.tip =
 Vector3.new(0, -1, -blade)` (Right Arm space) and the audit's contact/sweep checks measure the
 blade tip; `lune run study ... --tip="Right Arm:0,-1,-4"` measures references the same way. A
-long lever turns small arm motions into big tip speeds: accelerate into contact (`quadIn` out of
-the hang), do not `snap` out of it. Worked example and numbers: `references/combat.md` §9.
+long lever turns small arm motions into big tip speeds: accelerate into contact (`quadIn` or
+`heavyIn` out of the hang), do not `snap` out of it. **A weapon is swung, not punched**: wind it up
+all the way (an overhead cut starts with the sword raised over the head, the blade hanging behind
+it: raise 150-165 with the back arched), swing it round a wide arc with the arm out at full
+stretch (spread and the shoulder slid out 0.5-0.9 at the middle of the arc, keys every 2-3 frames
+along it so the tip travels the circle, not a chord), and carry it through past the target to the
+far side (behind the opposite hip, out wide to the other side, down to the floor). The audit's
+`swing` check holds a `meta.tip` clip to `meta.minArc` degrees of travelled arc (default 120; a
+katana combo uses 190), `meta.minStretch` studs of average arm slide through the swing, and, with
+`meta.cut = "overhead"`, a wind-up blade 1.5+ above and behind the head. Worked example and
+numbers: `references/combat.md` §9.
 
 Part entries: named angles (Torso `lean/twist/tilt`, Head `nod/turn/tilt`, limbs
 `raise/spread/swing/twist`, degrees, parent space), `pos = { forward, up, right }` studs (the torso
@@ -165,6 +193,18 @@ frame). `transform = CFrame` takes a raw pose. Details and numbers: `posing.md`.
    runtime fades still blend the short way: keep those under 180 degrees apart.
 7. **Nothing moves as one block.** Torso leads, limbs trail, the head counters; every move ends in
    its own pose and settles.
+8. **Lower the body the house way.** Measured from the house crouch, walk and run:
+   - feet under the hips (0.5-0.82 out from the centre), split front and back, never splayed
+     sideways like a sumo;
+   - one leg takes the depth (the front one, up to about 1.0 stud into the torso), the other stays
+     long (within 0.4) and stretches behind at `acos(1 - drop/2)` (drop 0.45 → 40 degrees, 0.6 →
+     46): two legs sunk together read as stumps under the torso;
+   - the chest leans into the drop, about 30 degrees per stud (at least 20);
+   - the head nods up against the lean: the face looks 2-13 degrees down, not at the floor (with
+     the kit's angle names, `nod ≈ 8 - lean`).
+9. **Uneven, weighted timing.** Slow wind-up, fast strike, slow heavy recovery (`weight`), the body
+   settling into each pose (`tension`), never one even glide. A weapon swings a wide arc at full
+   stretch; it is never a punch with a blade on it.
 
 ## R15 → R6
 
@@ -209,7 +249,9 @@ R6Combat.movesFrom(CombatMoves), onHit = ... })` gives `attack()`, `dash(dir)`, 
 
 ## Before you say it is done
 
-- `lune run check` from `tools/` (206 tests: mocap → R6, math, slides, legs on the pelvis, the crossed-legs
+- `lune run house <movement-system.rbxm> <yours.rbxm>`: your stance, guard, walk and run sit inside
+  the house's ranges (drop, lean, face, bury per leg, feet).
+- `lune run check` from `tools/` (214 tests: mocap → R6, math, slides, legs on the pelvis, the crossed-legs
   case, every move's audit and commitment, export round trip, R15 → R6 accuracy, study).
 - `selene --config selene.toml ../scripts` from `tools/`.
 - `lune run compare <reference> <yours>`: arms within about 10 degrees and feet within 0.25 stud
@@ -241,6 +283,12 @@ code and a check that fails if it comes back. Do not remove the checks to make a
 | The wall run caught the wall in the Jumping frame, before the jump's push, and "landed" at once | catch walls only in Freefall, 1.5 studs clear of the floor; keep the jump's rise | playtest |
 | Dash distances measured wrong because someone was steering the character | disable the PlayerModule controls (or WalkSpeed 0) while measuring | playtest method |
 | A sword slash was judged by the fist, not the blade (the skill had no weapon) | `meta.tip` in the audit, `--tip` / `opts.tips` in study, sweep lines (fastest frame, centre crossing) | test "meta.tip measures from the weapon" |
+| A class stance and guard sank both legs 0.7 into the torso with the feet splayed 1.1 out, like stumps under the body (copied from an R15 prototype) | the house's crouch: split feet, front leg deep, back leg long; `R6Clip.HOUSE` | audit `bury` ("both legs") and `house` (feet width); tests "house: ..." |
+| Guards looked at the floor (face 33 degrees down) behind a torso that barely leaned for its drop | the head nods up against the lean; the chest leans about 30 degrees per stud of drop | audit `house` (face, lean per stud) |
+| A walk and run made "heavier" by dropping the body 0.25 below the house cycles | keep the house's walk and run whole; change only what the class adds (the arms) | `lune run house` side by side |
+| `curve = "auto"` with no tension glided through every key at one speed: the user found every clip "nhanh quá, mượt quá", no weight | `tension` (0.45) and `weight` profiles: slow wind-up, fast strike, slow recovery; `heavyIn` / `heavyOut` / `heavy` eases | tests "weight stretches the wind-up and recovery, not the strike", "tension slows the curve into a key"; speed contrast (peak over mean speed) 3.7 keyed → 4.2 weighted over 58 clips |
+| Katana cuts keyed like punches: the arm pushed out along a line, the overhead cut never raising the sword over the head | wide arcs at full stretch, wind-up all the way back, follow-through to the far side | audit `swing` (`meta.minArc`, `meta.minStretch`, `meta.cut = "overhead"`); tests "a punch-shaped cut fails the swing check" |
+| Every in-between eased `sineInOut` made the body stop at every key: stop-start motion, no curve through passing keys ("chưa mượt, không có curve") | `curve = "auto"`: monotone cubic (PCHIP) through the keys; `recover` curved too | tests "auto curve keeps its speed through a passing key", "... never overshoots", "every kit move audits clean with curve = auto"; hitches counted over 58 clips (225 → 172) |
 | `snap` out of the hang made the blade peak at 309 studs/s right after the wind-up (reference: 192, 3 frames before contact) | `quadIn` into the cut | study's sweep line against the reference |
 
 Two that the audit cannot see, so watch for them:

@@ -5,3 +5,5 @@ ultimate-r6-animation-design-workspace/
 # built from the team's private R15 clips: kept local
 output/converted/
 output/reference/
+# local editor and preview settings
+.claude/

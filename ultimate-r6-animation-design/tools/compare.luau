@@ -1,5 +1,6 @@
 -- Compare your clip with its reference, frame by frame:
 --   lune run compare <reference.rbxm> <yours.rbxm> [refClip] [yourClip] [--stretch]
+-- (refClip "" or "-" takes the first clip in the reference file.)
 -- Prints, at 10 moments and at the worst frame: each arm's and leg's direction difference (the
 -- limb's own axis, degrees), how far each fist and each foot moved from where it started compared
 -- with the reference (studs), and the torso's lean and drop. --stretch maps the reference's length
@@ -25,6 +26,9 @@ if #args < 2 then
 end
 
 local function load(path, name)
+	if name == "" or name == "-" then
+		name = nil -- "" or "-": the first clip in the file
+	end
 	local data = fs.readFile(path)
 	local roots = string.match(path, "%.rbxl$") and { roblox.deserializePlace(data) } or roblox.deserializeModel(data)
 	for _, root in roots do
