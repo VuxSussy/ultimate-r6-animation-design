@@ -59,6 +59,7 @@ animation with force and commitment: not stiff like plastic, and not cramped or 
 | `output/eclipse/*.json` | the same 24 animations as JSON for Eclipse-Animator-MCP's `save_animation` tool |
 | `output/preview.html` | 3D preview: play/pause, 0.25x, frame by frame, limb trails, hit-stop |
 | `sword/` | the skill's test: a `SwordSlash` (+ `SwordGuard`) made by following the skill's workflow; `lune run build` writes `sword/out/` (rbxm, Eclipse JSON, preview) |
+| `mage/` | a two-hand fireball (`MageFireball`) built through the new-move protocol from real mocap (Kevin Iglesias' free spellcasting pack, converted with `lune run mocap`); `lune run build` writes `mage/out/` |
 | `studio/R6TestPlace.rbxl` | test place (Fists / Sword toggle at the bottom left, or key 1): modules, an R6 StarterCharacter, the harness, a wall to run on, a truss to climb, 10- and 30-stud ledges |
 
 References in `ultimate-r6-animation-design/references/`:
@@ -88,7 +89,13 @@ Turn a human motion-capture file into an R6 reference clip (needs Blender; print
 lune run mocap <file.fbx|.bvh|.glb> ../../output/mocap <ClipName> --fit=4
 ```
 
-Run the 201 tests:
+Compare your clip with its reference frame by frame (limb directions, fist and foot travel, torso):
+
+```bash
+lune run compare <reference.rbxm> <yours.rbxm> [refClip] [yourClip]
+```
+
+Run the 206 tests:
 
 ```bash
 lune run check
@@ -114,7 +121,7 @@ selene --config selene.toml ../scripts
 
 ## Tested and not tested
 
-- 201 tests pass, selene is clean, and all 24 clips pass the audit.
+- 206 tests pass, selene is clean, and all 24 clips pass the audit.
 - **Real playtests** (the Claude_R6_Preview place, an R6 character), with numbers read from the
   engine's own parts:
   - The 4-hit combo plays in order, even when pressed 0.12 s apart.
