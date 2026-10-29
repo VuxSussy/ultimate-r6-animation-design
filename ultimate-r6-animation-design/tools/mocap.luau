@@ -46,7 +46,7 @@ fs.writeDir(outDir)
 local pointsPath = file
 if not string.match(string.lower(file), "%.json$") then
 	pointsPath = outDir .. "/" .. name .. ".points.json"
-	local args = { "-b", "--factory-startup", "--python", here .. "/mocap_points.py", "--", file, pointsPath, "--fps=60" }
+	local args = { "-b", "--factory-startup", "--disable-autoexec", "--python", here .. "/mocap_points.py", "--", file, pointsPath, "--fps=60" }
 	for _, a in passthrough do
 		table.insert(args, a)
 	end
@@ -73,6 +73,48 @@ for _, n in audit.notes do
 	print("  - " .. n)
 end
 
+-- hands and feet against the human's at 8 moments through the take: each arm's direction from its
+-- shoulder, and each foot's travel from where it stood
+do
+	local Vector3 = roblox.Vector3
+	local world = R6Clip.world(baked)
+	local first = doc.frames[1].points
+	local function hp(f, name)
+		local t = f.points[name]
+		return Vector3.new(t[1], t[2], t[3])
+	end
+	print("hands and feet vs the human: each arm's direction from its shoulder (degrees), and how far")
+	print("each foot moved from where it stood, R6 against human (studs):")
+	print("  frame   L fist  R fist  L sole  R sole")
+	local worst = { 0, 0, 0, 0 }
+	local n = #world
+	for i = 1, n do
+		local w = world[i]
+		local f = doc.frames[math.min(#doc.frames, math.floor(w.time * doc.fps + 0.5) + 1)]
+		local d = {}
+		for j, spec in { { "Left Arm", "LeftFist" }, { "Right Arm", "RightFist" } } do
+			-- compare directions from the shoulders (R6 shoulders are wider than a human's)
+			local r6 = R6Rig.tip(spec[1], w.parts[spec[1]]) - R6Rig.pivot(spec[1], w.parts.Torso)
+			local side = j == 1 and "Left" or "Right"
+			local human = hp(f, spec[2]) - hp(f, side .. "Shoulder")
+			d[j] = math.deg(math.acos(math.clamp(r6.Unit:Dot(human.Unit), -1, 1)))
+		end
+		for j, spec in { { "Left Leg", "Left" }, { "Right Leg", "Right" } } do
+			-- how far each foot has moved from where it stood, R6 against human
+			local sole = R6Rig.tip(spec[1], w.parts[spec[1]]) - R6Rig.tip(spec[1], world[1].parts[spec[1]])
+			local humanSole = hp(f, spec[2] .. "Ankle") - hp(doc.frames[1], spec[2] .. "Ankle")
+			d[j + 2] = (sole - humanSole).Magnitude
+		end
+		for j = 1, 4 do
+			worst[j] = math.max(worst[j], d[j])
+		end
+		if (i - 1) % math.max(1, math.floor(n / 8)) == 0 then
+			print(string.format("  f%-5d %5.0f°  %5.0f°  %5.2f   %5.2f", w.frame, d[1], d[2], d[3], d[4]))
+		end
+	end
+	print(string.format("  worst   %5.0f°  %5.0f°  %5.2f   %5.2f   (arms: direction from the shoulder; feet: studs)", worst[1], worst[2], worst[3], worst[4]))
+end
+
 local ks = R6Clip.toKeyframeSequence(baked)
 fs.writeFile(outDir .. "/" .. name .. ".rbxm", roblox.serializeModel({ ks }))
 fs.writeDir(outDir .. "/eclipse")
@@ -83,7 +125,8 @@ print(R6Study.format(R6Study.measure(seq)))
 if fit then
 	local frames = R6Study.fitKeys(seq, fit)
 	print(string.format("  fit within %g degrees: %d keys at frames %s", fit, #frames, table.concat(frames, ",")))
-	print(R6Study.formatKeys(R6Study.keyPoses(seq, frames)))
+	-- mocap legs are keyed against the torso: hand them over on the pelvis, ready for R6Clip
+	print(R6Study.formatKeys(R6Study.keyPoses(seq, frames, 60, { rootLegs = true })))
 end
 
 -- preview
