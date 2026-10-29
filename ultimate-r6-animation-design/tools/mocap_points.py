@@ -1,8 +1,11 @@
 # Read a humanoid motion-capture file (FBX, BVH, GLB/GLTF) with Blender and write its body points
 # per frame as JSON, for `lune run mocap` to turn into an R6 clip. Runs headless:
 #
-#   /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup \
-#       --python mocap_points.py -- <in.fbx|.bvh|.glb> <out.json> [--fps=60] [--start=s] [--end=s] [--action=name]
+#   /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --disable-autoexec \
+#       --python mocap_points.py -- <in.fbx|.bvh|.glb|.blend> <out.json> [--fps=60] [--start=s] [--end=s] [--action=name]
+#   ... -- <in> --list      prints the file's actions (name, frames, seconds) and exits
+# A .blend is opened as is (never with its scripts: keep --disable-autoexec); pick the take with
+# --action when the file holds several.
 #
 # Points are in Roblox character space (studs, +X right, +Y up, -Z forward), scaled so the standing
 # hip-to-floor height is 2 studs (an R6 leg) and turned so frame 0 faces -Z. Bones are found by
@@ -14,9 +17,10 @@ import bpy, json, math, re, sys
 from mathutils import Vector
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-if len(argv) < 2:
+if len(argv) < 2 and "--list" not in argv:
     raise SystemExit("usage: Blender -b --python mocap_points.py -- <in> <out.json> [--fps=60] [--start=s] [--end=s]")
-src, out = argv[0], argv[1]
+src = argv[0]
+out = argv[1] if len(argv) > 1 and not argv[1].startswith("--") else None
 opts = {}
 overrides = {}
 for a in argv[2:]:
@@ -29,9 +33,14 @@ for a in argv[2:]:
             opts[m.group(1)] = m.group(2)
 fps = float(opts.get("fps", 60))
 
-bpy.ops.wm.read_factory_settings(use_empty=True)
 low = src.lower()
-if low.endswith(".fbx"):
+if low.endswith(".blend"):
+    bpy.ops.wm.open_mainfile(filepath=src, load_ui=False)
+else:
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+if low.endswith(".blend"):
+    pass
+elif low.endswith(".fbx"):
     bpy.ops.import_scene.fbx(filepath=src, automatic_bone_orientation=True)
 elif low.endswith(".bvh"):
     bpy.ops.import_anim.bvh(filepath=src, update_scene_fps=True, update_scene_duration=True)
@@ -40,11 +49,25 @@ elif low.endswith(".glb") or low.endswith(".gltf"):
 else:
     raise SystemExit("unsupported file: " + src)
 
-arm = next((o for o in bpy.context.scene.objects if o.type == "ARMATURE"), None)
-if arm is None:
+scene_fps = bpy.context.scene.render.fps / bpy.context.scene.render.fps_base
+if "--list" in argv:
+    for act in bpy.data.actions:
+        a, b = act.frame_range
+        print("[mocap_points] action %-40s frames %4d-%-4d %.2f s" % (act.name, a, b, (b - a) / scene_fps))
+    raise SystemExit(0)
+arms = [o for o in bpy.context.scene.objects if o.type == "ARMATURE"]
+if not arms:
     raise SystemExit("no armature in " + src)
-if "action" in opts and arm.animation_data:
-    arm.animation_data.action = bpy.data.actions[opts["action"]]
+# the rig with the most bones is the body (files often hold props or helper rigs too)
+arm = max(arms, key=lambda o: len(o.data.bones))
+if arm.animation_data is None:
+    arm.animation_data_create()
+if "action" in opts:
+    act = bpy.data.actions[opts["action"]]
+    arm.animation_data.action = act
+    # Blender 4.4+ slotted actions: bind the action's first slot to this rig
+    if hasattr(arm.animation_data, "action_slot") and getattr(act, "slots", None) and len(act.slots) > 0:
+        arm.animation_data.action_slot = act.slots[0]
 action = arm.animation_data.action if arm.animation_data else None
 if action is None:
     raise SystemExit("the armature has no animation")
