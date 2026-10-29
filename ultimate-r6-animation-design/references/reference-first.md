@@ -1,5 +1,7 @@
 # Reference first: find an R6 version, measure it, imitate it
 
+> New body-clearance requirement: source poses may telescope thighs into the torso. Preserve the measurement as provenance, but do not copy that artifact. Run R6Quality.audit and follow body-clearance.md. Grounded soles and legal slide budgets do not prove that the visible thigh is clear.
+
 Every new animation starts by looking for the same move already made **for R6**. A real R6 clip
 already solved the problems a six-block body has (no elbows, no knees, a torso that is the spine),
 so its timing, angles and slides are worth more than any rule of thumb. When no R6 version exists
@@ -45,6 +47,10 @@ Stop at the first source that has the move (or something close: a "heavy punch" 
 5. **Nothing R6 at all:** section 5.
 
 Say which source you used and why in the hand-over. If you fell back to section 5, say that too.
+
+### Archetype check before keying
+
+A technically accessible clip is suitable only if it demonstrates the requested action and weapon weight. For heavy swords, inspect full load, strike, follow-through and recovery in actual heavy footage (R6 first, other rigs when R6 cannot be verified). An unrelated slash or locomotion grammar may support rig mechanics, but cannot replace heavy visual research. Save the URL, creator, rig, approximate timestamps, visible observations and adaptation decisions before making keys. Distinguish searched listings, watched videos and measured key data. Do not infer 3D angles/studs from a camera view or describe authored numbers as source measurements. Reuse this brief only for the same action/style.
 
 ## 2. Loading a reference safely
 
@@ -116,7 +122,8 @@ In Studio (no Lune), `R6Study` is a ModuleScript like the others:
    contact; then the striking arm's angles until its tip lands near the reference's (the
    `tip ... to N fwd` number); then `pos` on the arm for the reference's gap, inside the budget.
 4. **Legs**: `space = "root"` and `ground = true` (posing.md). Step the front leg and extend the
-   rear one the way the reference does; the drop becomes the legs riding into the torso by itself.
+   rear one the way the reference does; repair any thigh/torso overlap in the source before export.
+   Reduce the depth of a stance when the six-block rig cannot keep the thigh visible and feet supported.
 5. **Bake, audit, and run `study` on your own clip** next to the reference. The two reports should
    agree on the strike line (chamber, hit share, release, hold), the torso numbers within about
    20%, and the tip's end point within half a stud. Where they differ, say why (a budget, the
@@ -133,7 +140,7 @@ These are the house rules when nothing closer exists:
 - **Arms slide along their swing**, more as the motion grows: idle 0.15 stud, walk 0.4, jump 0.3,
   land 0.6, run 0.7, crawl 0.9. The slide follows the swing: a forward swing pushes the arm
   forward, a back swing pulls it back.
-- **Legs ride up into the torso instead of bending** (R6 has no knee): walk ~1.0 stud on the
+- **Measured legacy leg slides, not permission to bury thighs** (R6 has no knee): walk ~1.0 stud on the
   forward leg as it passes, run 1.3, crouch 1.1, landings 1.3-1.6. At jump takeoff the legs push
   *out* of the hips 0.56 stud downward, then tuck up 0.9 in the air.
 - **The body drops into effort**: walk bobs 0.17-0.33 stud down and 0.1-0.25 forward, run

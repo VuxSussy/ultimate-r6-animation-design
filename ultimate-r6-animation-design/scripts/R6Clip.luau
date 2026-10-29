@@ -1015,10 +1015,16 @@ function R6Clip.audit(baked, meta)
 	if hit and meta.limb and meta.arc then
 		-- a sweeping strike (hook, roundhouse) lands where the tip crosses the centre line in front
 		local limb = ALIAS[meta.limb] or meta.limb
+		if meta.contactHeight then
+			assert(type(meta.contactHeight[1]) == "number" and type(meta.contactHeight[2]) == "number"
+				and meta.contactHeight[1] < meta.contactHeight[2], "contactHeight needs increasing numeric bounds")
+		end
 		local bestFrame, bestX = nil, math.huge
 		for _, w in world do
 			local tip = strikeTip(limb, w.parts[limb])
-			if math.abs(w.frame - hit) <= 8 and tip.Z < -0.8 and math.abs(tip.X) < bestX then
+			if math.abs(w.frame - hit) <= 8 and tip.Z < -0.8
+				and (not meta.contactHeight or (tip.Y >= meta.contactHeight[1] and tip.Y <= meta.contactHeight[2]))
+				and math.abs(tip.X) < bestX then
 				bestX, bestFrame = math.abs(tip.X), w.frame
 			end
 		end

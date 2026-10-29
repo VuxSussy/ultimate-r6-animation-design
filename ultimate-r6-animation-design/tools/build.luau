@@ -12,6 +12,7 @@ local only = Env.args[2]
 
 local R6Rig = Env.load("R6Rig")
 local R6Clip = Env.load("R6Clip")
+local R6Quality = Env.load("R6Quality")
 local CombatMoves = Env.load("CombatMoves")
 local Locomotion = Env.load("Locomotion")
 
@@ -70,12 +71,13 @@ for _, name in names do
 		continue
 	end
 	local m = moves[name]
-	local audit = R6Clip.audit(m.baked, m.meta)
+	local audit = R6Quality.audit(m.baked, m.meta)
 	local metrics = {}
 	for k, v in audit.metrics do
 		if type(v) == "table" then
 			for part, x in v do
-				table.insert(metrics, string.format("%s.%s=%.2f", k, string.gsub(part, " ", ""), x))
+				local value = type(x) == "table" and x.depth or x
+				table.insert(metrics, string.format("%s.%s=%s", k, string.gsub(part, " ", ""), type(value) == "number" and string.format("%.3g", value) or tostring(value)))
 			end
 		else
 			table.insert(metrics, string.format("%s=%s", k, typeof(v) == "number" and string.format("%.3g", v) or tostring(v)))
@@ -88,6 +90,7 @@ for _, name in names do
 		failures += 1
 	end
 
+	assert(audit.ok, name .. ": " .. table.concat(audit.notes, "; "))
 	local ks = R6Clip.toKeyframeSequence(m.baked)
 	ks.Parent = folder
 	fs.writeFile(outDir .. "/eclipse/" .. name .. ".json", json(R6Clip.toEclipse(m.baked)))

@@ -1,0 +1,1 @@
+Use this skill to build a four-attack R6 heavy-sword combo held with both hands. Preserve reference provenance, body clearance, grip contact and export fidelity; inspect front, side and motion. Run tools with compact output and report actual testing limits.
